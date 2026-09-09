@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+release/
+progressi_selezione.json
+*.tmp
+smoke*.json
+.env
+.env.*
+*.pem
+*.key
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Eseguibile, icona, screenshot e ZIP sono distribuiti con i sorgenti.
+/dist/*
+!/dist/StazioneScelte-Windows.zip
+!/dist/StazioneScelte-Sorgenti.zip
