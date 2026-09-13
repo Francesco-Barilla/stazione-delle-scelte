@@ -206,7 +206,7 @@ class InterfaceTests(unittest.TestCase):
         app.set_language('Java')
         app.action('return')
         self.assertEqual(app.page, 'lab')
-        self.assertTrue(app.editor.value.startswith('//'))
+        self.assertEqual(app.editor.value, '')
         app.set_language('Python')
         self.assertEqual(app.editor.value, '# mia bozza')
 

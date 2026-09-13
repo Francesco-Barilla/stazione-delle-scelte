@@ -4,7 +4,6 @@ import pygame
 from engine import LANGUAGES, describe, parse, run
 from logic import OPERATORS, REPRESENTATIONS, EXPLANATIONS, NOTES, compute, normalize, present, sample_source, truth_table
 from missions import Case
-from scene import flight_scene
 from ui import Editor, font, mix, panel, text, wrap
 
 # Each sequence includes a contrast and the mission's important edge case.
@@ -26,6 +25,7 @@ class Activities:
         self.activity_round = 0
         self.activity_correct, self.activity_complete = False, False
         self.activity_selected, self.activity_progress = None, 0
+        self.activity_attempt = None
         self.activity_code, self.activity_feedback, self.activity_details = '', '', ''
         self.activity_mistakes = 0
         self.logic_return = 'home'
@@ -61,6 +61,7 @@ class Activities:
     def prepare_activity_case(self):
         self.invalidate()
         self.activity_correct, self.activity_selected, self.activity_progress = False, None, 0
+        self.activity_attempt = None
         options = set(self.mission.rule(case.data) for case in self.mission.all_cases())
         self.activity_options = sorted(options)
         random.Random(self.mission.key + str(self.activity_round)).shuffle(self.activity_options)
@@ -78,6 +79,7 @@ class Activities:
             return
         expected = self.mission.rule(self.case.data)
         chosen = self.activity_options[index]
+        self.activity_attempt = index
         if chosen != expected:
             self.activity_mistakes += 1
             self.shake = 1
@@ -123,53 +125,6 @@ class Activities:
                     elif self.activity_progress >= 1:
                         self.playing = False
 
-    def draw_activity(self):
-        guided = self.page == 'briefing'
-        self.header('Impara facendo · prevedi → osserva → riprova' if guided else 'Missione in corso · dai l’ordine giusto a cinque droni')
-        text(self.canvas, self.mission.title, (40, 107), 27, self.c['text'], True)
-        self.selectors()
-        panel(self.canvas, pygame.Rect(40, 151, 660, 98), self.c['panel'], self.c['border'], 12)
-        wrap(self.canvas, self.mission.objective, pygame.Rect(56, 162, 629, 77), 18, self.c['text'])
-        title = ('1 · PREVEDI', '2 · CAMBIANO I DATI', '3 · METTI ALLA PROVA')[self.activity_round] if guided else f'TURNO DI BORDO · DRONE {self.activity_round + 1} / 5'
-        text(self.canvas, title, (41, 267), 17, self.c['accent'], True)
-        for index in range(len(self.activity_cases)):
-            success = index < self.activity_round or (index == self.activity_round and self.activity_correct)
-            pygame.draw.circle(self.canvas, self.c['mint'] if success else self.c['border'], (705 + index * 35, 277), 9)
-        flight_scene(self.canvas, pygame.Rect(40, 299, 850, 265), self.c, self.time, self.activity_options,
-                     self.activity_selected, self.activity_progress, self.shake, self.activity_round + 1)
-        text(self.canvas, 'SCEGLI L’ORDINE · clic oppure tasti A–D', (925, 257), 16, self.c['muted'], True)
-        for index, outcome in enumerate(self.activity_options):
-            label = chr(65 + index) + ' · ' + (describe(outcome) if outcome else 'Nessun ordine: resta fermo')
-            self.button('order:' + str(index), label, (925, 290 + index * 67, 475, 57), active=not self.activity_correct and not self.activity_complete,
-                        selected=self.activity_selected == index, size=18)
-        self.draw_data(581, 850)
-        panel(self.canvas, pygame.Rect(40, 658, 850, 166), self.c['panel'], self.c['mint'] if self.activity_correct else self.c['border'], 15)
-        headline = 'HAI CAPITO LA REGOLA' if self.activity_complete and guided else 'TURNO COMPLETATO' if self.activity_complete else self.case.label.upper()
-        text(self.canvas, headline, (58, 674), 17, self.c['mint'] if self.activity_complete else self.c['accent'], True)
-        frame = self.frame
-        message = self.activity_feedback
-        if self.activity_correct and frame and not self.activity_complete:
-            message = frame.message
-        wrap(self.canvas, message, pygame.Rect(58, 704, 811, 75), 19, self.c['text'])
-        if frame and not self.activity_complete:
-            caption = f'Riga {frame.line} · {frame.title}' if frame.line else frame.title
-            text(self.canvas, caption, (58, 792), 15, self.c['muted'])
-            states = ' · '.join(f'R{line} {status}' for line, status in frame.statuses)
-            text(self.canvas, states, (875, 800), 13, self.c['mint'], anchor='midright')
-        self.button('activity_why', 'Perché?', (925, 591, 227, 44))
-        self.button('logic', 'Banco logico', (1164, 591, 236, 44))
-        self.button('solution', 'Guarda la regola nel codice', (925, 650, 475, 44))
-        if self.activity_complete:
-            self.button('activity_play' if guided else 'activity_again', 'Ora pilota tu' if guided else 'Rigioca il turno', (925, 713, 475, 54), primary=True)
-        else:
-            ready = self.activity_correct and self.activity_progress >= 1 and not self.playing
-            paused = self.activity_correct and not self.playing and (self.activity_progress < 1 or self.frame_index < len(self.frames) - 1)
-            label = 'Prova un altro caso' if guided else 'Invia il prossimo drone'
-            if self.activity_round == len(self.activity_cases) - 1:
-                label = 'Concludi la scoperta' if guided else 'Completa il turno'
-            self.button('activity_resume' if paused else 'next_drone', 'Riprendi il volo' if paused else label, (925, 713, 475, 54), active=ready or paused, primary=True)
-        self.button('activity_code', 'Laboratorio del codice', (925, 782, 475, 41), size=16)
-
     def logic_values(self):
         if self.logic_representation == 'Campi':
             return tuple(normalize(editor.value, 'Campi') for editor in self.logic_fields)
@@ -179,7 +134,7 @@ class Activities:
 
     def draw_logic(self):
         self.header('Banco logico · cambia un ingresso e osserva che cosa cambia')
-        text(self.canvas, 'Accendi, spegni, scrivi, cancella.', (40, 105), 30, self.c['text'], True)
+        text(self.canvas, 'Cambia gli ingressi: il risultato si aggiorna da solo.', (40, 105), 30, self.c['text'], True)
         for index, representation in enumerate(REPRESENTATIONS):
             self.button('representation:' + representation, representation, (40 + index * 220, 155, 210, 43), selected=self.logic_representation == representation)
         for index, operator in enumerate(OPERATORS):
@@ -191,6 +146,7 @@ class Activities:
             enabled = not (self.logic_operator == 'NOT' and index == 1)
             panel(self.canvas, pygame.Rect(left, 221, 320, 247), self.c['panel'], self.c['border'], 16)
             text(self.canvas, 'INGRESSO ' + ('A' if index == 0 else 'B'), (left + 18, 240), 17, self.c['accent'] if enabled else self.c['muted'], True)
+            text(self.canvas, 'Clicca nel campo e scrivi' if self.logic_representation == 'Campi' else 'Clicca sul valore per cambiarlo', (left + 18, 266), 13, self.c['muted'])
             if self.logic_representation == 'Campi':
                 self.logic_fields[index].draw(self.canvas, pygame.Rect(left + 17, 280, 285, 52), self.c, readonly=not enabled, tick=self.time, size=18, line_numbers=False)
                 length = len(self.logic_fields[index].value)
@@ -246,6 +202,8 @@ class Activities:
             self.state['difficulty'] = 'Facile'
             self.begin_activity()
         elif key == 'activity_code':
+            self.persist()
+            self.mode = 'game'
             self.open_mission(self.mission.key)
         elif key == 'test_flight':
             self.begin_activity(code=self.code())

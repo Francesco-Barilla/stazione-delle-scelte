@@ -21,20 +21,54 @@ archivi. Se il salvataggio non è possibile, l'app mostra un avviso.
 ## Tre percorsi
 
 - **Impara facendo**: 20 missioni introdotte da tre piccoli esperimenti.
-  Prevedi un ordine, osserva la decisione, riprova quando cambiano i dati.
+  Leggi i dati nel pannello 1 e fai clic su una risposta nel pannello 2.
+  **Da rivedere: riprova** evidenzia la scelta e dà un indizio; **Corretto**
+  resta visibile durante l'animazione, anche quando il drone deve stare fermo.
   La sequenza include contrasti e casi al limite scelti per il concetto.
-  **Perché?** collega il risultato alla regola e all'equivoco da evitare.
+  **Spiegami il perché** collega il risultato alla regola e all'equivoco.
 - **Gioca**: nel livello Facile dai ordini a cinque droni. I portelli reagiscono
   alla scelta; con attesa, rifiuto o nessuna azione il drone resta fermo.
   Gli errori forniscono indizi e permettono di riprovare. Il quinto drone ha
   dati a sorpresa. Non c'è un limite di tempo. Il **Laboratorio del codice**
-  aggiunge blocchi guidati; Medio propone completamenti dei `???`, Difficile
-  un editor libero. La verifica del codice confronta tutte le combinazioni
+  apre un esercizio modificabile anche arrivando da Impara. **Prossimo blocco
+  vuoto** apre la scelta ancora mancante. Medio propone completamenti dei
+  `???`, Difficile un editor libero. La verifica confronta tutte le combinazioni
   del dominio, inclusi i confini, e mostra un controesempio se trova un errore.
   Dopo una verifica riuscita puoi collaudare il tuo programma con cinque droni.
 - **Scova l'equivoco**: 20 previsioni su programmi concreti. Prima rispondi,
   poi osserva la traccia e leggi il perché. Non tutte le domande mostrano un
   programma corretto rispetto a una consegna: devi prevedere il codice effettivo.
+  Cambiare risposta richiede un nuovo controllo: il vecchio riscontro sparisce.
+
+![Anche negare l'accesso può essere una risposta corretta](screenshots/25-corretto-anche-da-fermo.png)
+
+## Cosa scrivere e dove
+
+In **Medio**, premi **Completa i ???**: il pulsante seleziona la prossima
+lacuna. La consegna distingue **condizione** (il controllo vero/falso, senza
+riscrivere `if`) e **azione** (il comando con `()`). Il rientro e l'eventuale
+`;` già presente restano al loro posto. Completa entrambe le lacune.
+
+In **Difficile**, premi **Scrivi qui** e usa la tastiera. L'editor parte vuoto;
+le bozze precedenti sono conservate. **Cosa devo scrivere?** mostra la regola,
+la struttura richiesta e un esempio completo nel linguaggio selezionato,
+con rientri preservati. Le due righe sotto l'editor sono solo un estratto.
+
+I **dati sono già forniti dal gioco**: usa i loro nomi nelle condizioni.
+Per il testo usa i sensori booleani `campo_a` e `campo_b`. Qui scrivi le
+decisioni e le azioni, senza dichiarare, leggere o modificare gli ingressi.
+
+**Controlla il mio codice** (o **Ctrl+Invio**) verifica tutti i casi del dominio.
+Il pannello destro mostra **ordini richiesti** e **ordini ottenuti**. Un errore
+di sintassi indica la riga da correggere; una regola errata mostra i dati di
+un caso che la mette in difficoltà. **Leggi il perché** apre il dettaglio.
+
+**Guarda l'esecuzione** apre una vista separata per seguire le decisioni.
+Osservare i passi non assegna il completamento. La bozza e il cursore restano
+al loro posto tornando al gioco. **Invio** va a capo; **Tab** inserisce quattro
+spazi; **Shift+rotella** scorre anche le righe lunghe della traccia.
+
+![Il pulsante seleziona la condizione da completare](screenshots/18-completa-condizione.png)
 
 Il **Banco logico** è accessibile dalla Home e durante le attività. Cambia AND,
 OR, NOT e XOR; usa booleani, bit 0/1 oppure due campi di testo. Il risultato e
@@ -44,9 +78,9 @@ non modifica la bozza della missione. Prova `"0"`, `"false"`, uno spazio e un
 campo davvero vuoto: la differenza si può osservare, non solo leggere.
 
 Nella traccia **VERO**, **FALSO** e **NON VALUTATA** sono stati distinti.
-Le etichette riportano il numero di riga. Clicca la striscia degli stati o
-**Dettagli** per leggere tutto il passo, le sostituzioni numeriche e le azioni
-eseguite. I tempi dell'animazione sono didattici, non misure di prestazioni.
+Le etichette riportano il numero di riga. **Guarda l'esecuzione** mostra i
+passi e le sostituzioni dei valori; **Spiegami il perché** approfondisce gli
+esperimenti. I tempi dell'animazione sono didattici, non misure di prestazioni.
 
 Le missioni sono tutte accessibili. Completamenti e bozze sono separati per
 missione, difficoltà e linguaggio; le scelte a blocchi sono condivise tra i
@@ -146,7 +180,7 @@ regolabile. Velocità 0,5×, 1×, 2× e 3×. F11 alterna finestra/schermo intero
 Esc chiude una scheda o torna alla Home. Le finestre di spiegazione si leggono
 con rotella, frecce, PagSu/PagGiù e Home/End. Aprire schede o impostazioni
 mette in pausa; riprendere con Esegui.
-Nei turni dei droni riprendi con **Riprendi il volo**. Puoi scegliere un ordine
+Nei turni dei droni riprendi con **Riprendi la decisione**. Puoi scegliere un ordine
 anche con i tasti **A–D**. I campi del banco accettano fino a 40 caratteri.
 
 I controlli cliccabili mostrano bordo e cursore a mano. I controlli disabilitati
@@ -176,6 +210,7 @@ di ricostruirla. Gli archivi non contengono progressi, cache o file di build.
 - `missions.py`: missioni, blocchi, domini, risultati attesi e verifica.
 - `lessons.py`: spiegazioni, differenze di linguaggio e previsioni.
 - `activities.py`: esperimenti guidati, turni dei droni e banco interattivo.
+- `guidance.py`, `guided_ui.py`: consegne, scrittura guidata e riscontri espliciti.
 - `logic.py`: normalizzazione degli ingressi e tabelle di verità.
 - `main.py`, `ui.py`, `scene.py`: interfaccia, editor e stazione vettoriale.
 - `storage.py`: preferenze, bozze e progressi locali validati.

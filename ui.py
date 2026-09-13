@@ -1,5 +1,7 @@
 """Shared interface primitives, vector drone and a small code editor."""
 import math
+import os
+from pathlib import Path
 from functools import lru_cache
 import pygame
 
@@ -17,7 +19,9 @@ def palette(theme):
 
 @lru_cache(maxsize=100)
 def font(size, bold=False, mono=False):
-    return pygame.font.SysFont('consolas' if mono else 'segoeui', size, bold=bold)
+    name = ('consolab.ttf' if bold else 'consola.ttf') if mono else ('segoeuib.ttf' if bold else 'segoeui.ttf')
+    path = Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / name
+    return pygame.font.Font(str(path), size) if path.is_file() else pygame.font.SysFont('consolas' if mono else 'segoeui', size, bold=bold)
 
 
 def text(surface, value, pos, size, color, bold=False, anchor='topleft', mono=False):
@@ -46,6 +50,16 @@ def lines(value, width, size, bold=False):
             line = (line + ' ' + word).strip()
         result.append(line)
     return tuple(result)
+
+
+def rich_lines(value, code, width, size):
+    """Wrap prose while keeping the instructional code's indentation intact."""
+    before, found, after = value.partition(code)
+    if not found:
+        return [(line, False) for line in lines(value, width, size)]
+    return ([(line, False) for line in lines(before, width, size)] +
+            [(line, True) for line in code.splitlines()] +
+            [(line, False) for line in lines(after, width, size)])
 
 
 def wrap(surface, value, rect, size, color, bold=False):
@@ -255,6 +269,11 @@ class Editor:
                     pygame.draw.rect(surface, mix(colors['bg'], colors['blue'], .4), (rect.x + left + (start - self.xscroll) * cw, y, (end - start) * cw, lh))
                 code_clip = surface.get_clip()
                 surface.set_clip(pygame.Rect(rect.x + left - 3, rect.y + 4, rect.width - left - 1, rect.height - 8).clip(code_clip))
+                if not readonly and not line.lstrip().startswith(('#', '//')):
+                    index = line.find('???')
+                    while index >= 0:
+                        pygame.draw.rect(surface, mix(colors['bg'], colors['accent'], .30), (rect.x + left + (index - self.xscroll) * cw, y, 3 * cw, lh))
+                        index = line.find('???', index + 3)
                 color = colors['muted'] if line_numbers and line.lstrip().startswith(('#', '//')) else colors['accent'] if line_numbers and line.lstrip().startswith(('if ', 'elif ', 'else', '}')) else colors['text']
                 text(surface, line, (rect.x + left - self.xscroll * cw, y), size, color, mono=True)
                 if self.focus and not readonly and offset <= self.caret <= offset + len(line) and int(tick * 2) % 2 == 0:

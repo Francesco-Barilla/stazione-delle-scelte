@@ -99,7 +99,7 @@ CAMPO PIENO NON È UNA CONVERSIONE UNIVERSALE
 Per conservare la stessa regola nei quattro linguaggi, prepara un booleano di presenza. Il banco mostra il codice adatto: in C non basta verificare il puntatore a una stringa; in Java una stringa non è una condizione booleana.'''
 
 HOW_TO_PLAY = '''IMPARA FACENDO · TRE ESPERIMENTI
-Leggi la regola e prevedi l’ordine per il primo drone. Osserva la decisione e il portello. Nel secondo caso cambiano i dati: la tua previsione cambia? Con il terzo metti alla prova quello che hai scoperto. Perché? collega il risultato alla regola e all’equivoco da evitare.
+Leggi la regola in alto e i dati nel pannello 1. Fai clic su una risposta nel pannello 2: qui scegli con il mouse, non scrivi codice. Corretto conferma la scelta; Da rivedere: riprova evidenzia l’errore e dà un indizio. Il computer esegue le azioni. Un rifiuto o un drone fermo possono essere risultati corretti. Dopo la decisione premi Prossimo esperimento. Spiegami il perché mostra la regola e l’equivoco da evitare.
 
 FACILE · IL TURNO DEI CINQUE DRONI
 Sei al controllo della stazione. Per ogni drone leggi i sensori e scegli l’ordine corretto. Un errore mantiene il drone al sicuro e aggiunge un indizio: puoi riprovare. Il quinto drone porta un caso a sorpresa. Non c’è un conto alla rovescia: ragionare vale più della velocità.
@@ -108,23 +108,23 @@ IL BANCO LOGICO
 Accendi e spegni A e B. Confronta AND, OR, NOT e XOR, poi prova 0/1, booleani e campi di testo. Scrivi 0 oppure uno spazio, poi cancella tutto. La tabella evidenzia il caso che stai provando; il codice mostra come preparare gli ingressi nei quattro linguaggi.
 
 DALLE SCELTE AL CODICE
-Laboratorio del codice apre la costruzione a blocchi nel livello Facile. Scegli le condizioni e le azioni, poi verifica la regola. Il rientro dei blocchi rende visibile l’annidamento.
+Laboratorio del codice apre un esercizio modificabile. Nel livello Facile scegli con il mouse condizioni e azioni. Prossimo blocco vuoto apre la scelta ancora mancante. Premi Controlla i blocchi quando hai completato le scelte. Il rientro rende visibile l’annidamento.
 
 MEDIO · COMPLETA
-Sostituisci tutti i ???. La struttura è già presente, ma devi completare una condizione e un’azione. La scheda Comandi rimane disponibile.
+Premi Completa i ??? per selezionare la prima lacuna. Se manca la condizione, scrivi solo il controllo vero/falso, senza ripetere if. Se manca l’azione, scrivi un comando con (), per esempio apri(). Conserva il rientro e il ; già presente. Premi di nuovo il pulsante per raggiungere l’altra lacuna. Cosa devo scrivere? mostra consegna ed esempi nel linguaggio selezionato.
 
 DIFFICILE · PROGRAMMA
-Scrivi il frammento con selezioni e azioni. Non servono import, classi, main, compilatori o installazioni di altri linguaggi. La scheda Comandi elenca il sottoinsieme accettato.
+Premi Scrivi qui e usa la tastiera: una istruzione per riga. I sensori sono già preparati dal gioco; usa i loro nomi nelle condizioni. Scrivi selezioni e azioni. Invio va a capo, Tab inserisce quattro spazi. La guida Cosa devo scrivere? mostra la struttura completa, anche per gli if annidati. Non servono import, classi, main o letture dei dati.
 
 VERIFICA MISSIONE
-La verifica usa tutti i valori del dominio dichiarato, non soltanto il caso visibile. Se trova un problema, mostra un controesempio riproducibile con atteso e ottenuto. Anche la struttura richiesta deve essere raggiunta: inserirla in un ramo morto non basta.
+Controlla il mio codice o Ctrl+Invio verifica tutti i valori del dominio dichiarato. Il pannello 2 mostra ordini richiesti e ottenuti. Se qualcosa non coincide, correggi e ricontrolla. Anche la struttura richiesta deve essere raggiunta. Guarda l’esecuzione apre i singoli passi in una vista separata: osservare la traccia non completa la missione.
 
 SCOVA L’EQUIVOCO
 Leggi il programma e i dati, scegli una previsione e verificala. Poi osserva la traccia per capire il motivo. Le domande riguardano il comportamento effettivo, anche quando il programma è diverso dalla soluzione della missione.
 
 Le sfide sono tutte accessibili. I progressi sono separati per missione, difficoltà e linguaggio. Le bozze restano disponibili tornando alla stessa combinazione. Cambiare lingua apre la relativa bozza o un nuovo esercizio: i tentativi arbitrari non vengono tradotti automaticamente.
 
-Aprire spiegazioni, banco logico o impostazioni mette in pausa la simulazione. Usa Riprendi il volo per continuare. Consultare una soluzione non assegna il completamento né sostituisce la tua bozza.'''
+Aprire spiegazioni, banco logico o impostazioni mette in pausa la simulazione. Usa Riprendi la decisione per continuare. Consultare una soluzione non assegna il completamento né sostituisce la tua bozza.'''
 
 
 def commands_text(mission, language):

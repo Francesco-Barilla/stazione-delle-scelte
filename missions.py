@@ -80,7 +80,7 @@ class Mission:
 
     def starter(self, language, difficulty):
         if difficulty == 'Difficile':
-            return ('# ' if language == 'Python' else '// ') + 'Scrivi le decisioni della stazione. Dati e azioni sono nella scheda Comandi.\n'
+            return ''
         code = self.solution(language)
         nodes = list(walk(parse(code, language)))
         lines = code.splitlines()
@@ -174,7 +174,7 @@ MISSIONS = (
         {'urgente': (False, True), 'badge': (False, True)}, lambda d: ('soccorso',) if d['urgente'] else ('corsia_rapida',) if d['badge'] else ('corsia_normale',),
         ('Prova il caso in cui urgente e badge sono entrambi veri.', 'Il controllo urgente deve venire per primo.', 'Else raccoglie tutti i casi rimasti, non controlla badge una seconda volta.')),
     Mission('and', '07 · Due permessi necessari', 'AND richiede entrambe le condizioni.', 'Più condizioni', 'and',
-        'Apri() soltanto se badge e autorizzato sono entrambi veri. In ogni altro caso nega(). Usa AND nella condizione.',
+        'Esegui apri() soltanto se badge e autorizzato sono entrambi veri. In ogni altro caso nega(). Usa AND nella condizione.',
         'AND è vero soltanto con due condizioni vere. Con la prima falsa, la seconda parte non serve e non viene valutata: è il cortocircuito.',
         'OR consentirebbe l’accesso anche con un solo permesso. “Entrambi” non significa “almeno uno”.',
         'if {0}:\n    {1}()\nelse:\n    {2}()\n',
@@ -196,7 +196,7 @@ MISSIONS = (
         {'temperatura': range(0, 101), 'fumo': (False, True)}, lambda d: ('allarme',) if d['temperatura'] >= 70 or d['fumo'] else ('parti',),
         ('Prova i casi con un solo segnale di pericolo.', 'In Python usa or; negli altri linguaggi ||.', 'La soglia include 70. Quando sono veri entrambi, l’allarme si attiva una volta.')),
     Mission('intervallo', '09 · Il carico giusto', 'Due confini, una fascia.', 'Più condizioni', 'and',
-        'Carica() i contenitori con peso da 10 a 20 kg, estremi inclusi. Per gli altri esegui controlla(). Usa due confronti collegati con AND.',
+        'Esegui carica() per i contenitori con peso da 10 a 20 kg, estremi inclusi. Per gli altri esegui controlla(). Usa due confronti collegati con AND.',
         'Per essere dentro un intervallo devono valere insieme il limite inferiore e quello superiore. “Da 10 a 20 inclusi” comprende entrambi gli estremi.',
         'peso >= 10 OR peso <= 20 è vero per qualunque peso. Inoltre 10 <= peso <= 20 non ha lo stesso significato in tutti i linguaggi: ripeti il dato nei due confronti.',
         'if {0}:\n    {1}()\nelse:\n    {2}()\n',
@@ -283,7 +283,7 @@ MISSIONS += (
         {'segnale_a': (0, 1), 'segnale_b': (0, 1)}, lambda d: ('allarme',) if d['segnale_a'] == 1 or d['segnale_b'] == 1 else ('parti',),
         ('L’unico caso tranquillo è 0/0.', 'Serve OR, non AND.', 'Controlla anche 1/1: allarme una volta.')),
     Mission('xor', '16 · Un solo pilota', 'XOR: uno oppure l’altro, non entrambi.', 'Logica e dati', 'xor',
-        'La navetta ha due comandi: badge e autorizzato. Apri() se esattamente uno è vero; con entrambi veri o entrambi falsi attendi(). Usa XOR (^).',
+        'La navetta ha due comandi: badge e autorizzato. Esegui apri() se esattamente uno è vero; con entrambi veri o entrambi falsi attendi(). Usa XOR (^).',
         'XOR è vero con ingressi diversi e falso con ingressi uguali. Qui i due ingressi sono booleani.',
         'OR e XOR differiscono nel caso vero/vero: OR è vero, XOR è falso. ^ non ha cortocircuito: valuta entrambi.',
         'if {0}:\n    {1}()\nelse:\n    {2}()\n',

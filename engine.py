@@ -212,7 +212,7 @@ def evaluate(tree, data, language, notes):
     left = evaluate(tree[1], data, language, notes)
     if op == 'xor':
         right = evaluate(tree[2], data, language, notes)
-        notes.append('XOR valuta entrambi gli ingressi: è vero con esattamente uno vero (per booleani o bit 0/1).')
+        notes.append('XOR: un solo vero dà vero (booleani o bit 0/1); valuta entrambi.')
         return int(left) ^ int(right) if language in ('C', 'JavaScript') else left ^ right
     if op in ('and', 'or'):
         if (op == 'and' and not left) or (op == 'or' and left):
@@ -363,13 +363,38 @@ class ProgramParser:
         raise CodeError('Scrivi if, else if, else e i comandi della stazione. Le azioni vogliono () e ;. I dati non possono essere modificati qui.', line)
 
 
+def placeholder_index(code, language):
+    """Ignore comments and quoted text when locating a teaching gap."""
+    quote, escaped, index = None, False, 0
+    while index < len(code):
+        char = code[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif char in ('"', "'"):
+            quote = char
+        elif (language == 'Python' and char == '#') or (language != 'Python' and code[index:index+2] == '//'):
+            end = code.find('\n', index)
+            index = len(code) if end < 0 else end
+            continue
+        elif code[index:index+3] == '???':
+            return index
+        index += 1
+    return -1
+
+
 def parse(code, language):
     if language not in LANGUAGES:
         raise CodeError('Linguaggio non riconosciuto.')
     if len(code) > MAX_CODE or len(code.splitlines()) > MAX_LINES:
         raise CodeError('Programma troppo lungo: massimo 12000 caratteri e 180 righe.')
-    if '???' in code:
-        raise CodeError('Completa i punti segnati con ??? prima di eseguire.', code[:code.index('???')].count('\n') + 1)
+    gap = placeholder_index(code, language)
+    if gap >= 0:
+        raise CodeError('Completa i punti segnati con ??? prima di eseguire.', code[:gap].count('\n') + 1)
     try:
         if language == 'Python':
             nodes = python_nodes(ast.parse(code).body, code.splitlines())

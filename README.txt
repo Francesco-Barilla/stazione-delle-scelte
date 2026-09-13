@@ -10,16 +10,23 @@ La versione Windows funziona offline e non richiede Python o compilatori.
 IMPARA FACENDO
 Scegli una delle 20 missioni e un linguaggio.
 Tre piccoli esperimenti: prevedi un ordine, osserva, riprova con altri dati.
-Perché? spiega la decisione e l'equivoco da evitare.
+Leggi i dati nel pannello 1 e fai clic su una risposta nel pannello 2.
+Da rivedere: riprova evidenzia l'errore e dà un indizio. Corretto resta visibile
+anche quando il drone deve stare fermo. Spiegami il perché mostra il motivo.
 La traccia distingue VERO, FALSO e NON VALUTATA.
 
 GIOCA
 Facile: guida cinque droni, con clic o tasti A-D. Il quinto ha dati a sorpresa.
 Gli errori danno indizi e permettono di riprovare, senza limite di tempo.
 Laboratorio del codice: costruisci la regola con condizioni e azioni a blocchi.
-Medio: completa i punti segnati con ???.
-Difficile: scrivi il frammento di codice della missione.
-Verifica missione controlla tutti i casi del dominio, compresi i confini.
+Medio: premi Completa i ???. La guida distingue condizione e azione con ().
+Scrivi solo nella selezione; conserva il rientro e il ; quando è già presente.
+Difficile: premi Scrivi qui e digita la regola, una istruzione per riga.
+Cosa devo scrivere? mostra dati, comandi ed esempio nel linguaggio scelto.
+I sensori sono già forniti dal gioco: usa i loro nomi nelle condizioni.
+Controlla il mio codice o Ctrl+Invio verifica tutti i casi del dominio.
+Richiesto e ottenuto mostrano la differenza. Guarda l'esecuzione apre i passi
+in una vista separata, conservando la bozza e il cursore.
 Se c'è un errore, puoi rigiocare il controesempio e leggere il perché.
 
 BANCO LOGICO
@@ -39,7 +46,7 @@ descritto nella scheda Comandi. Non è un compilatore o un IDE completo.
 
 F11: schermo intero. Esc: chiudi spiegazione o torna alla Home.
 Aprire una spiegazione, il banco o le impostazioni mette il volo in pausa.
-Riprendi il volo continua dal punto in cui eri arrivato.
+Riprendi la decisione continua dal punto in cui eri arrivato.
 Editor: Ctrl+A/C/X/V, Ctrl+Z/Y, Tab; Shift+rotella per lo scorrimento orizzontale.
 Progressi e bozze si salvano in progressi_selezione.json accanto all'app.
 

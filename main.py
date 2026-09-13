@@ -12,16 +12,18 @@ import pygame
 
 from engine import COMMANDS, LANGUAGES, CodeError, describe, format_expression, parse, run
 from activities import Activities
+from guided_ui import GuidedUI
+from guidance import first_gap, meaningful_code, mission_brief, syntax_example, writing_issue
 from lessons import HOW_TO_PLAY, LANGUAGE_NOTES, MISCONCEPTIONS, PROCEDURE, QUIZZES, commands_text
 from missions import BY_KEY, DIFFICULTIES, GROUPS, MISSIONS, validate
 from scene import icon, stars, station
 import storage
-from ui import SIZE, THEMES, Editor, font, lines, mix, palette, panel, text, wrap
+from ui import SIZE, THEMES, Editor, font, lines, mix, palette, panel, rich_lines, text, wrap
 
 TITLE = 'Stazione delle scelte'
 
 
-class App(Activities):
+class App(GuidedUI, Activities):
     def __init__(self, screen, state_path=None, saving=True):
         self.screen, self.canvas = screen, pygame.Surface(SIZE)
         self.state_path, self.saving = state_path, saving
@@ -31,6 +33,7 @@ class App(Activities):
         self.mission = BY_KEY[self.state['mission']]
         self.editor, self.buttons = Editor(), []
         self.solution_editor = Editor()
+        self.trace_editor = Editor()
         self.pointer, self.pressed, self.focus = (-1, -1), None, None
         self.modal, self.modal_scroll, self.modal_max = None, 0, 0
         self.modal_text, self.modal_title = '', ''
@@ -168,11 +171,12 @@ class App(Activities):
         self.follow_line(error.line)
 
     def start_trace(self, auto=True):
+        self.frames, self.frame_index = [], 0
         try:
             self.frames = run(parse(self.code(), self.language), self.case.data, self.language)
             self.frame_index, self.elapsed, self.motion = 0, 0, 1
             self.playing, self.error_line = auto, 0
-            if self.easy and self.page == 'lab':
+            if self.easy and self.page == 'lab' and self.modal != 'trace':
                 self.code_view = True
         except CodeError as error:
             self.error(error)
@@ -180,9 +184,10 @@ class App(Activities):
     def follow_line(self, line=None):
         line = line if line is not None else self.frame.line if self.frame else 0
         if line:
-            visible = max(1, self.code_rect.height // (self.state['size'] + 8) - 1)
-            if line - 1 < self.editor.scroll or line - 1 >= self.editor.scroll + visible:
-                self.editor.scroll = max(0, line - 3)
+            editor = self.trace_editor if self.modal == 'trace' else self.editor
+            visible = max(1, editor.rect.height // (editor.size + 8) - 1)
+            if line - 1 < editor.scroll or line - 1 >= editor.scroll + visible:
+                editor.scroll = max(0, line - 3)
 
     def advance(self):
         if self.frame_index + 1 < len(self.frames):
@@ -194,8 +199,13 @@ class App(Activities):
 
     def verify(self):
         self.persist()
-        self.playing = False
+        self.invalidate()
+        self.editor.focus = False
         try:
+            issue = writing_issue(self.code(), self.language) if not self.easy else ''
+            if issue:
+                gap = first_gap(self.code(), self.language)
+                raise CodeError(issue, gap.line if gap else 1)
             self.review = validate(self.mission, self.code(), self.language)
             self.feedback, self.error_line = self.review.message, 0
             if self.review.success:
@@ -206,7 +216,9 @@ class App(Activities):
                 self.shake = 1
                 if self.review.case:
                     self.extra_case = self.review.case
-                    self.start_trace(False)
+            previous_view = self.code_view
+            self.start_trace(False)
+            self.code_view = previous_view
         except CodeError as error:
             self.error(error)
 
@@ -257,12 +269,12 @@ class App(Activities):
         rect = pygame.Rect(rect)
         hovered = active and rect.collidepoint(self.pointer)
         color = self.c['mint'] if primary else self.c['accent'] if selected else self.c['border']
-        fill = mix(self.c['card'], color, .13 if hovered or selected or primary else 0)
+        fill = self.c['mint'] if primary and active else mix(self.c['card'], color, .13 if hovered or selected else 0)
         panel(self.canvas, rect, fill, self.c['mint'] if hovered else color, 10)
         if hovered:
             pygame.draw.rect(self.canvas, self.c['mint'], rect, 2, border_radius=10)
-        label_color = self.c['text'] if active else mix(self.c['card'], self.c['muted'], .6)
-        if font(size).size(label)[0] <= rect.width - 18:
+        label_color = self.c['bg'] if primary and active else self.c['text'] if active or selected else mix(self.c['card'], self.c['muted'], .8)
+        if font(size, selected or primary).size(label)[0] <= rect.width - 18:
             text(self.canvas, label, rect.center, size, label_color, selected or primary, 'center')
         else:
             wrap(self.canvas, label, rect.inflate(-18, -10), size, label_color, selected or primary)
@@ -334,11 +346,11 @@ class App(Activities):
         self.button('catalog_page:-1', '← Precedenti', (40, 799, 225, 45), active=self.catalog_page > 0)
         self.button('catalog_page:1', 'Altre sfide →', (1175, 799, 225, 45), active=self.catalog_page + 1 < pages)
 
-    def draw_data(self, top, width=660):
+    def draw_data(self, top, width=660, left=40):
         fields = list(self.case.values)
         count = max(1, len(fields))
         for i, name in enumerate(fields):
-            rect = pygame.Rect(40 + i * (width + 8) / count, top, (width + 8) / count - 8, 63)
+            rect = pygame.Rect(left + i * (width + 8) / count, top, (width + 8) / count - 8, 63)
             panel(self.canvas, rect, self.c['panel'], self.c['border'], 10)
             value = self.case.values[name]
             extra = ''
@@ -416,6 +428,9 @@ class App(Activities):
         self.button('restart', 'Riparti', (1243, top, 157, 45), active=enabled)
 
     def draw_lab(self):
+        if self.mode == 'game':
+            self.draw_game_lab()
+            return
         self.header('Impara · osserva il programma' if self.mode == 'learn' else 'Gioca · costruisci una regola valida per tutti i casi')
         text(self.canvas, self.mission.title, (40, 107), 28, self.c['text'], True)
         self.selectors()
@@ -505,6 +520,9 @@ class App(Activities):
         panel(self.canvas, rect, self.c['panel'], self.c['border'], 20)
         text(self.canvas, self.modal_title, (204, 104), 27, self.c['text'], True)
         self.button('close', 'Chiudi', (1126, 99, 112, 42))
+        if self.modal == 'trace':
+            self.draw_game_trace()
+            return
         top = 161
         if self.modal == 'lesson':
             for i, tab in enumerate(('Idea', 'Procedimento', 'Equivoci', 'Linguaggi', 'Comandi', 'Gioco')):
@@ -533,15 +551,16 @@ class App(Activities):
         size = self.state['size'] + 2
         step = font(size).get_linesize() + 6
         content_rect = pygame.Rect(206, top, 995, 767 - top)
-        content_lines = lines(self.modal_text, content_rect.width, size)
+        content_lines = (rich_lines(self.modal_text, syntax_example(self.mission, self.language), content_rect.width, size) if self.modal == 'writing' else
+                         [(line, False) for line in lines(self.modal_text, content_rect.width, size)])
         self.modal_max = max(0, len(content_lines) * step - content_rect.height)
         self.modal_scroll = max(0, min(self.modal_scroll, self.modal_max))
         clip = self.canvas.get_clip()
         self.canvas.set_clip(content_rect.clip(clip))
-        for i, line in enumerate(content_lines):
+        for i, (line, mono) in enumerate(content_lines):
             y = top + i * step - self.modal_scroll
             if y + step >= top and y < content_rect.bottom:
-                text(self.canvas, line, (content_rect.x, y), size, self.c['text'])
+                text(self.canvas, line, (content_rect.x, y), size, self.c['blue'] if mono else self.c['text'], mono=mono)
         self.canvas.set_clip(clip)
         self.button('scroll:-1', '↑', (1211, 220, 33, 42), active=self.modal_scroll > 0)
         self.button('scroll:1', '↓', (1211, 714, 33, 42), active=self.modal_scroll < self.modal_max)
@@ -586,6 +605,44 @@ class App(Activities):
             return
         if key == 'close':
             self.modal = None
+            self.playing = False
+        elif key == 'writing_help':
+            try:
+                code = self.code()
+            except CodeError:
+                code = ''
+            self.open_text('Consegna e sintassi · ' + self.language, mission_brief(self.mission, self.language, code, blocks=self.easy), 'writing')
+        elif key == 'focus_code' and self.page == 'lab' and self.mode == 'game' and not self.easy and not self.modal:
+            gap = first_gap(self.editor.value, self.language)
+            if gap:
+                self.editor.anchor, self.editor.caret = gap.start, gap.end
+            else:
+                self.editor.anchor = self.editor.caret = len(self.editor.value)
+                if self.editor.value and not meaningful_code(self.editor.value) and not self.editor.value.endswith('\n'):
+                    self.editor.replace('\n')
+                    self.invalidate()
+                    self.persist()
+            self.editor.focus, self.focus = True, None
+            self.editor.reveal()
+        elif key == 'next_slot' and self.easy:
+            index = next((i for i, value in enumerate(self.choices) if value < 0), None)
+            if index is not None:
+                self.code_view = False
+                self.block_scroll = max(0, index * 72 - 72)
+                self.action('slot:' + str(index))
+        elif key == 'trace_view':
+            try:
+                code = self.code()
+                issue = writing_issue(code, self.language)
+                if issue:
+                    gap = first_gap(code, self.language)
+                    raise CodeError(issue, gap.line if gap else 1)
+                parse(code, self.language)
+                self.trace_editor.set(code)
+                self.open_text('Esecuzione passo per passo', '', 'trace')
+                self.start_trace(False)
+            except CodeError as error:
+                self.error(error)
         elif key.startswith('lesson:'):
             self.lesson(key.split(':', 1)[1])
         elif key == 'help':
@@ -688,6 +745,8 @@ class App(Activities):
             self.verify()
         elif key.startswith('answer:'):
             self.quiz_choice = int(key.split(':')[1])
+            self.quiz_attempted, self.quiz_correct = False, False
+            self.invalidate()
         elif key == 'check_answer':
             self.verify_quiz()
         elif key == 'quiz_next':
@@ -717,7 +776,12 @@ class App(Activities):
                 self.action(target)
             self.pressed = None
         if event.type == pygame.MOUSEWHEEL:
-            if self.modal:
+            if self.modal == 'trace':
+                if pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    self.trace_editor.xscroll = max(0, self.trace_editor.xscroll - event.y * 5)
+                else:
+                    self.trace_editor.scroll = max(0, self.trace_editor.scroll - event.y * 3)
+            elif self.modal:
                 self.modal_scroll -= event.y * 82
             elif self.page == 'lab' and self.easy and not self.code_view and self.block_rect.collidepoint(self.pointer):
                 self.block_scroll -= event.y * 64
@@ -741,6 +805,10 @@ class App(Activities):
                 self.fullscreen = not self.fullscreen
             elif event.key == pygame.K_ESCAPE:
                 self.action('close' if self.modal else 'return' if self.page == 'settings' else 'home')
+            elif not self.modal and self.page == 'lab' and self.mode == 'game' and event.key == pygame.K_RETURN and event.mod & pygame.KMOD_CTRL:
+                self.verify()
+            elif self.modal == 'trace' and event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_PAGEUP, pygame.K_PAGEDOWN, pygame.K_HOME, pygame.K_END):
+                self.trace_editor.scroll = max(0, self.trace_editor.scroll + {pygame.K_UP: -1, pygame.K_DOWN: 1, pygame.K_PAGEUP: -7, pygame.K_PAGEDOWN: 7, pygame.K_HOME: -10000, pygame.K_END: 10000}[event.key])
             elif self.modal and event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_PAGEUP, pygame.K_PAGEDOWN, pygame.K_HOME, pygame.K_END):
                 self.modal_scroll += {pygame.K_UP: -65, pygame.K_DOWN: 65, pygame.K_PAGEUP: -410, pygame.K_PAGEDOWN: 410, pygame.K_HOME: -100000, pygame.K_END: 100000}[event.key]
             elif editable:
@@ -764,7 +832,7 @@ class App(Activities):
         self.time += dt
         self.shake = max(0, self.shake - dt * 2)
         self.update_activities(dt)
-        if not self.modal and self.page in ('lab', 'quiz') and self.playing:
+        if self.modal in (None, 'trace') and self.page in ('lab', 'quiz') and self.playing:
             self.motion = min(1, self.motion + dt * 3 * self.state['speed'])
             self.elapsed += dt
             if self.elapsed >= 1.1 / self.state['speed']:
@@ -864,6 +932,39 @@ def smoke(report, screenshot_dir=None):
     app.action('mode:quiz')
     app.catalog_page = 2
     capture('17-nuovi-equivoci')
+    app.mode = 'game'
+    app.set_difficulty('Medio')
+    app.open_mission('and')
+    app.action('focus_code')
+    capture('18-completa-condizione')
+    app.editor.replace('badge and autorizzato')
+    app.action('focus_code')
+    capture('19-completa-azione')
+    app.set_difficulty('Difficile')
+    app.open_mission('annidato')
+    capture('20-scrivi-regola')
+    app.action('writing_help')
+    app.draw()
+    app.modal_scroll = 380
+    capture('21-guida-if-annidato')
+    app.action('close')
+    app.open_mission('soglia')
+    app.editor.set(app.mission.solution(app.language).replace('>=', '>'))
+    app.verify()
+    capture('22-confronta-errore')
+    app.action('trace_view')
+    app.action('step')
+    capture('23-osserva-traccia')
+    app.action('close')
+    app.mode = 'learn'
+    app.open_activity('annidato')
+    correct = app.activity_options.index(app.mission.rule(app.case.data))
+    app.choose_order((correct + 1) % len(app.activity_options))
+    capture('24-risposta-da-rivedere')
+    app.choose_order(correct)
+    app.frame_index = len(app.frames) - 1
+    app.playing, app.activity_progress = False, 1
+    capture('25-corretto-anche-da-fermo')
     Path(report).parent.mkdir(parents=True, exist_ok=True)
     Path(report).write_text(json.dumps(dict(ok=True, render_checks=checks, activity_views=7, missions=len(MISSIONS), quizzes=len(QUIZZES), languages=list(LANGUAGES))), encoding='utf-8')
 
