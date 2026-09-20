@@ -12,6 +12,7 @@ import pygame
 from engine import CodeError, LANGUAGES, generate, parse, run
 from logic import OPERATORS, REPRESENTATIONS, compute, normalize, truth_table
 from main import App
+from console_fixtures import parse, validate, console_source
 from missions import BY_KEY, Case, DEFAULT_DATA, MISSIONS
 from ui import THEMES, font, palette
 
@@ -35,23 +36,23 @@ class LogicTests(unittest.TestCase):
                 normalize(value, '0/1')
 
     def test_xor_evaluates_both_and_preserves_native_types_and_precedence(self):
-        source = 'if badge ^ autorizzato:\n    apri()\nelse:\n    attendi()\n'
+        source = 'if badge ^ autorizzato:\n    @apri\nelse:\n    @attendi\n'
         for language in LANGUAGES:
             for a in (False, True):
                 for b in (False, True):
                     frames = run(parse(generate(parse(source, 'Python'), language), language), DEFAULT_DATA | {'badge': a, 'autorizzato': b}, language)
                     self.assertEqual(frames[-1].actions, ('apri',) if a != b else ('attendi',))
                     self.assertFalse(any('Cortocircuito' in f.message for f in frames))
-            code = 'if 2 ^ 1 == 2:\n    apri()\n' if language == 'Python' else 'if (2 ^ 1 == 2) { apri(); }'
+            code = 'if 2 ^ 1 == 2:\n    @apri\n' if language == 'Python' else 'if (2 ^ 1 == 2) { @apri; }'
             if language == 'Java':
                 with self.assertRaises(CodeError):
                     parse(code, language)  # Java parses 2 ^ false, which mixes types.
             else:
                 self.assertEqual(run(parse(code, language), DEFAULT_DATA, language)[-1].actions, () if language == 'Python' else ('apri',))
-        for code in ('if (segnale_a ^ segnale_b) { parti(); }', 'if (badge ^ 1) { apri(); }'):
+        for code in ('if (segnale_a ^ segnale_b) { @parti; }', 'if (badge ^ 1) { @apri; }'):
             with self.assertRaises(CodeError):
                 parse(code, 'Java')
-        code = 'if ((segnale_a ^ segnale_b) == 1) { parti(); }'
+        code = 'if ((segnale_a ^ segnale_b) == 1) { @parti; }'
         self.assertEqual(run(parse(code, 'Java'), DEFAULT_DATA | {'segnale_a': 1}, 'Java')[-1].actions, ('parti',))
 
 

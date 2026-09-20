@@ -1,5 +1,6 @@
 """Validated local progress, separate from the sorting and loop laboratories."""
 import json
+import classroom
 import os
 from pathlib import Path
 import sys
@@ -13,7 +14,7 @@ def data_path():
 
 
 def defaults():
-    return dict(language='Python', difficulty='Facile', theme='Notte', size=19,
+    return dict(classroom=classroom.empty(), language='Python', difficulty='Facile', theme='Notte', size=19,
                 speed=1, mission='ricarica', completed=[], quizzes=[], drafts={}, blocks={})
 
 
@@ -36,6 +37,7 @@ def load(path=None):
             for key, choices in list(incoming['blocks'].items())[:100]:
                 if key in BY_KEY and isinstance(choices, list) and len(choices) == len(BY_KEY[key].slots) and all(type(v) is int and -1 <= v < len(slot.options) for v, slot in zip(choices, BY_KEY[key].slots)):
                     state['blocks'][key] = choices
+        state['classroom'] = classroom.clean(incoming.get('classroom'))
         return state, ''
     except FileNotFoundError:
         return state, ''

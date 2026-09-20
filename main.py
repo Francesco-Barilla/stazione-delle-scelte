@@ -18,6 +18,8 @@ from lessons import HOW_TO_PLAY, LANGUAGE_NOTES, MISCONCEPTIONS, PROCEDURE, QUIZ
 from missions import BY_KEY, DIFFICULTIES, GROUPS, MISSIONS, validate
 from scene import icon, stars, station
 import storage
+import classroom
+from native_io import output_statement
 from ui import SIZE, THEMES, Editor, font, lines, mix, palette, panel, rich_lines, text, wrap
 
 TITLE = 'Stazione delle scelte'
@@ -221,6 +223,7 @@ class App(GuidedUI, Activities):
             self.code_view = previous_view
         except CodeError as error:
             self.error(error)
+        classroom.track(self, 'Programma', bool(self.review and self.review.success), self.choices if self.easy else self.editor.value, mode='Gioca')
 
     def open_quiz(self, index):
         self.persist()
@@ -237,6 +240,7 @@ class App(GuidedUI, Activities):
             return
         self.quiz_attempted = True
         self.quiz_correct = self.quiz_choice == self.quiz.answer
+        classroom.track(self, 'Quiz: ' + self.quiz.key, self.quiz_correct, self.quiz_choice, mode='Quiz', mission=self.quiz.mission)
         self.feedback = ('Previsione corretta. ' if self.quiz_correct else 'Questa previsione non corrisponde al codice. ') + self.quiz.explanation
         if self.quiz_correct:
             key = self.quiz.key + ':' + self.language
@@ -407,7 +411,7 @@ class App(GuidedUI, Activities):
             selected = self.choices[i]
             value = 'Scegli una condizione…' if slot.kind == 'condition' else 'Scegli un’azione…'
             if selected >= 0:
-                value = format_expression(slot.options[selected], self.language) if slot.kind == 'condition' else COMMANDS[slot.options[selected]] + ' · ' + slot.options[selected] + '()'
+                value = format_expression(slot.options[selected], self.language) if slot.kind == 'condition' else COMMANDS[slot.options[selected]] + ' · ' + output_statement(slot.options[selected], self.language)
             text(self.canvas, value, (row.x + 14, row.y + 31), 17, self.c['text'])
             pygame.draw.polygon(self.canvas, self.c['muted'], [(row.right - 26, row.y + 35), (row.right - 16, row.y + 35), (row.right - 21, row.y + 41)])
             hit = row.clip(rect.inflate(-4, -4))
@@ -512,6 +516,9 @@ class App(GuidedUI, Activities):
         self.button('return', 'Torna al laboratorio', (870, 723, 350, 45), primary=True)
 
     def draw_modal(self):
+        if self.modal == 'classroom':
+            classroom.draw_report(self)
+            return
         veil = pygame.Surface(SIZE, pygame.SRCALPHA)
         veil.fill((0, 0, 0, 175))
         self.canvas.blit(veil, (0, 0))
@@ -532,7 +539,7 @@ class App(GuidedUI, Activities):
             slot = self.mission.slots[self.slot_index]
             wrap(self.canvas, 'Scegli il contenuto del blocco. La struttura della missione resta visibile nel laboratorio.', pygame.Rect(205, 172, 984, 70), 21, self.c['muted'])
             for i, option in enumerate(slot.options):
-                label = format_expression(option, self.language) if slot.kind == 'condition' else COMMANDS[option] + ' · ' + option + '()'
+                label = format_expression(option, self.language) if slot.kind == 'condition' else COMMANDS[option] + ' · ' + output_statement(option, self.language)
                 self.button('choose:' + str(i), label, (220, 280 + i * 103, 1000, 80), selected=self.choices[self.slot_index] == i, size=23)
             return
         if self.modal == 'solution':
@@ -543,10 +550,11 @@ class App(GuidedUI, Activities):
             self.modal_scroll = max(0, min(self.modal_scroll, self.modal_max))
             self.solution_editor.scroll = self.modal_scroll // line_height
             self.solution_editor.draw(self.canvas, code_rect, self.c, readonly=True, size=size)
-            wrap(self.canvas, 'Questa è una soluzione possibile. Consultarla non modifica il tuo tentativo e non completa la missione.', pygame.Rect(207, 727, 983, 56), 20, self.c['muted'])
+            wrap(self.canvas, 'Programma esterno: inserisci i dati nell’ordine indicato. Nel gioco sono già forniti.' if getattr(self, 'native_context_view', False) else 'Il frammento usa i dati già forniti dal gioco. Apri il programma completo per vedere anche le letture standard.', pygame.Rect(207, 727, 983, 56), 19, self.c['muted'])
             self.button('scroll:-1', '↑', (1211, 180, 33, 42), active=self.modal_scroll > 0)
             self.button('scroll:1', '↓', (1211, 656, 33, 42), active=self.modal_scroll < self.modal_max)
             text(self.canvas, 'Rotella · PagSu/PagGiù · Home/End', (207, 793), 14, self.c['muted'])
+            self.button('native_context', 'Torna al frammento' if getattr(self, 'native_context_view', False) else 'Programma completo con lettura dei dati', (721, 783, 471, 32), size=16)
             return
         size = self.state['size'] + 2
         step = font(size).get_linesize() + 6
@@ -585,8 +593,7 @@ class App(GuidedUI, Activities):
         else:
             self.code_rect = pygame.Rect(742, 288, 658, 293)
             self.draw_lab()
-        text(self.canvas, 'Realizzato dal Prof. Barillà Francesco', (40, 880), 14, self.c['muted'], anchor='midleft')
-        text(self.canvas, self.notice or 'OFFLINE · LE SCELTE SI IMPARANO PROVANDO', (1400, 880), 13, self.c['muted'], anchor='midright')
+        classroom.draw_status(self)
         if self.modal:
             self.draw_modal()
         cursor = pygame.SYSTEM_CURSOR_HAND if any(active and rect.collidepoint(self.pointer) for _, rect, active in self.buttons) else pygame.SYSTEM_CURSOR_IBEAM if self.page == 'lab' and self.mode == 'game' and not self.easy and self.code_rect.collidepoint(self.pointer) and not self.modal else pygame.SYSTEM_CURSOR_ARROW
@@ -601,12 +608,15 @@ class App(GuidedUI, Activities):
         self.screen.blit(pygame.transform.smoothscale(self.canvas, size), ((width - size[0]) // 2, (height - size[1]) // 2))
 
     def action(self, key):
+        if classroom.action(self, key):
+            return
         if self.activity_action(key):
             return
         if key == 'close':
             self.modal = None
             self.playing = False
         elif key == 'writing_help':
+            classroom.aid(self, 'guida alla scrittura')
             try:
                 code = self.code()
             except CodeError:
@@ -649,10 +659,19 @@ class App(GuidedUI, Activities):
             self.open_text('Come si gioca', HOW_TO_PLAY)
         elif key == 'hint':
             self.hint_level = min(3, self.hint_level + 1)
+            classroom.aid(self, f'suggerimento {self.hint_level}')
             self.open_text(f'Suggerimento {self.hint_level}/3', '\n\n'.join(self.mission.hints[:self.hint_level]))
         elif key == 'solution':
+            classroom.aid(self, 'soluzione')
+            self.native_context_view = False
             self.solution_editor.set(self.activity_code if self.page in ('flight', 'briefing') else self.mission.solution(self.language))
             self.open_text('Una soluzione possibile · ' + self.language, '', 'solution')
+        elif key == 'native_context':
+            from native_context import context_code
+            self.native_context_view = not getattr(self, 'native_context_view', False)
+            source = self.activity_code if self.page in ('flight', 'briefing') else self.mission.solution(self.language)
+            self.solution_editor.set(context_code(source, self.language) if self.native_context_view else source)
+            self.modal_scroll = 0
         elif key == 'feedback':
             self.open_text('Il perché del risultato', self.feedback)
         elif key == 'trace_details' and self.frame:
@@ -753,6 +772,8 @@ class App(GuidedUI, Activities):
             self.open_quiz((self.quiz_index + 1) % len(QUIZZES))
 
     def event(self, event):
+        if classroom.event(self, event):
+            return
         if event.type == pygame.QUIT:
             self.persist()
             self.alive = False
@@ -965,8 +986,10 @@ def smoke(report, screenshot_dir=None):
     app.frame_index = len(app.frames) - 1
     app.playing, app.activity_progress = False, 1
     capture('25-corretto-anche-da-fermo')
+    from release_checks import check_classroom
+    check_classroom(app, report, screenshot_dir)
     Path(report).parent.mkdir(parents=True, exist_ok=True)
-    Path(report).write_text(json.dumps(dict(ok=True, render_checks=checks, activity_views=7, missions=len(MISSIONS), quizzes=len(QUIZZES), languages=list(LANGUAGES))), encoding='utf-8')
+    Path(report).write_text(json.dumps(dict(ok=True, classroom_report=True, render_checks=checks, activity_views=7, missions=len(MISSIONS), quizzes=len(QUIZZES), languages=list(LANGUAGES))), encoding='utf-8')
 
 
 def main():

@@ -1,5 +1,6 @@
 """Interactive lessons, five-drone rounds and a hands-on Boolean bench."""
 import random
+import classroom
 import pygame
 from engine import LANGUAGES, describe, parse, run
 from logic import OPERATORS, REPRESENTATIONS, EXPLANATIONS, NOTES, compute, normalize, present, sample_source, truth_table
@@ -80,6 +81,7 @@ class Activities:
         expected = self.mission.rule(self.case.data)
         chosen = self.activity_options[index]
         self.activity_attempt = index
+        classroom.track(self, f"Drone {self.activity_round + 1}", chosen == expected, (chosen, self.case.values), mode="Impara" if self.page == "briefing" else "Gioca")
         if chosen != expected:
             self.activity_mistakes += 1
             self.shake = 1

@@ -1,3 +1,4 @@
+from native_io import output_statement
 """Boolean laboratory: normalize inputs before applying logical operators."""
 OPERATORS = ('AND', 'OR', 'NOT', 'XOR')
 REPRESENTATIONS = ('Booleani', '0/1', 'Campi')
@@ -65,9 +66,9 @@ def sample_source(operator, representation, language):
         setup.append(prefix + name + ' = ' + rhs + ('' if language == 'Python' else ';'))
     exp = expression(operator, language)
     if language == 'Python':
-        setup += [f'if {exp}:', '    apri()', 'else:', '    attendi()']
+        setup += [f'if {exp}:', '    ' + output_statement('apri', language), 'else:', '    ' + output_statement('attendi', language)]
     else:
-        setup += [f'if ({exp}) {{', '    apri();', '} else {', '    attendi();', '}']
+        setup += [f'if ({exp}) {{', '    ' + output_statement('apri', language), '} else {', '    ' + output_statement('attendi', language), '}']
     return '\n'.join(setup) + '\n'
 
 

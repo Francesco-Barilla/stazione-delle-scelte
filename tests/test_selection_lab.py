@@ -14,6 +14,7 @@ from engine import CodeError, LANGUAGES, MAX_CODE, evaluate, generate, parse, pa
 from lessons import QUIZZES
 from missions import BY_KEY, Case, DEFAULT_DATA, DIFFICULTIES, MISSIONS, validate
 from main import App
+from console_fixtures import parse, validate, console_source
 import storage
 from ui import THEMES, font, palette
 
@@ -44,7 +45,7 @@ class InterpreterTests(unittest.TestCase):
             self.assertEqual(review.passed, 100)
 
     def test_if_independent_and_chain_have_different_actions(self):
-        independent = 'if batteria < 20:\n    ricarica()\nif batteria < 60:\n    controlla()\n'
+        independent = 'if batteria < 20:\n    @ricarica\nif batteria < 60:\n    @controlla\n'
         chain = independent.replace('\nif batteria < 60:', '\nelif batteria < 60:')
         for language in LANGUAGES:
             self.assertEqual(self.trace(generate(parse(independent, 'Python'), language), language, batteria=10)[-1].actions, ('ricarica', 'controlla'))
@@ -65,7 +66,7 @@ class InterpreterTests(unittest.TestCase):
     def test_boolean_short_circuit_and_inclusive_or(self):
         for language in LANGUAGES:
             for op, data, expected in [('and', {'badge': False, 'autorizzato': True}, ('nega',)), ('or', {'badge': True, 'autorizzato': True}, ('apri',))]:
-                source = f'if badge {op} autorizzato:\n    apri()\nelse:\n    nega()\n'
+                source = f'if badge {op} autorizzato:\n    @apri\nelse:\n    @nega\n'
                 frames = self.trace(generate(parse(source, 'Python'), language), language, **data)
                 self.assertEqual(frames[-1].actions, expected)
                 self.assertTrue(any('Cortocircuito' in f.message for f in frames))
@@ -74,42 +75,42 @@ class InterpreterTests(unittest.TestCase):
         notes = []
         self.assertFalse(evaluate(parse_expression('10 <= peso <= 20'), DEFAULT_DATA | {'peso': 35}, 'Python', notes))
         for language in ('C', 'JavaScript'):
-            frames = self.trace('if (10 <= peso <= 20) { carica(); }', language, peso=35)
+            frames = self.trace('if (10 <= peso <= 20) { @carica; }', language, peso=35)
             self.assertEqual(frames[-1].actions, ('carica',))
-            frames = self.trace('if (!batteria < 30) { parti(); }', language, batteria=50)
+            frames = self.trace('if (!batteria < 30) { @parti; }', language, batteria=50)
             self.assertEqual(frames[-1].actions, ('parti',))
-        frames = self.trace('if not batteria < 30:\n    parti()\n', batteria=50)
+        frames = self.trace('if not batteria < 30:\n    @parti\n', batteria=50)
         self.assertEqual(frames[-1].actions, ('parti',))
         # ! binds before >= in brace languages; Python not binds after >=.
-        self.assertEqual(self.trace('if (!batteria >= 30) { parti(); }', 'C', batteria=50)[-1].actions, ())
-        self.assertEqual(self.trace('if not batteria >= 30:\n    parti()\n', batteria=0)[-1].actions, ('parti',))
+        self.assertEqual(self.trace('if (!batteria >= 30) { @parti; }', 'C', batteria=50)[-1].actions, ())
+        self.assertEqual(self.trace('if not batteria >= 30:\n    @parti\n', batteria=0)[-1].actions, ('parti',))
         with self.assertRaises(CodeError):
-            parse('if (10 <= peso <= 20) { carica(); }', 'Java')
+            parse('if (10 <= peso <= 20) { @carica; }', 'Java')
 
     def test_java_boolean_condition_and_static_validation(self):
-        for code in ('if (batteria) { parti(); }', 'if (false) { if (batteria) { parti(); } }', 'if (badge < 2) { parti(); }', 'if (badge == 1) { parti(); }'):
+        for code in ('if (batteria) { @parti; }', 'if (false) { if (batteria) { @parti; } }', 'if (badge < 2) { @parti; }', 'if (badge == 1) { @parti; }'):
             with self.assertRaises(CodeError):
                 parse(code, 'Java')
         for language in ('C', 'JavaScript'):
             for value, expected in ((0, ()), (-1, ('parti',)), (2, ('parti',))):
-                self.assertEqual(self.trace('if (batteria) { parti(); }', language, batteria=value)[-1].actions, expected)
+                self.assertEqual(self.trace('if (batteria) { @parti; }', language, batteria=value)[-1].actions, expected)
 
     def test_javascript_strict_equality_is_not_loose_equality(self):
-        self.assertEqual(self.trace('if (badge == 1) { apri(); }', 'JavaScript', badge=True)[-1].actions, ('apri',))
-        self.assertEqual(self.trace('if (badge === 1) { apri(); }', 'JavaScript', badge=True)[-1].actions, ())
+        self.assertEqual(self.trace('if (badge == 1) { @apri; }', 'JavaScript', badge=True)[-1].actions, ('apri',))
+        self.assertEqual(self.trace('if (badge === 1) { @apri; }', 'JavaScript', badge=True)[-1].actions, ())
         for language in ('C', 'Java'):
             with self.assertRaises(CodeError):
-                parse('if (livello === 1) { apri(); }', language)
+                parse('if (livello === 1) { @apri; }', language)
 
     def test_else_binding_and_empty_statement_are_observable(self):
         for language in ('C', 'JavaScript', 'Java'):
-            code = 'if (badge) if (livello >= 2) apri(); else accompagna();'
+            code = 'if (badge) if (livello >= 2) @apri; else @accompagna;'
             self.assertEqual(self.trace(code, language, badge=False)[-1].actions, ())
             self.assertEqual(self.trace(code, language, badge=True, livello=0)[-1].actions, ('accompagna',))
-            self.assertEqual(self.trace('if (badge); apri();', language, badge=False)[-1].actions, ('apri',))
+            self.assertEqual(self.trace('if (badge); @apri;', language, badge=False)[-1].actions, ('apri',))
 
     def test_dead_required_structure_does_not_win_even_on_same_line(self):
-        code = 'if (false) { if (badge) { apri(); } } if (badge && livello >= 2) { apri(); } else if (badge) { accompagna(); } else { nega(); }'
+        code = 'if (false) { if (badge) { @apri; } } if (badge && livello >= 2) { @apri; } else if (badge) { @accompagna; } else { @nega; }'
         for language in ('C', 'JavaScript', 'Java'):
             review = validate(BY_KEY['annidato'], code, language)
             self.assertFalse(review.success)
@@ -117,11 +118,11 @@ class InterpreterTests(unittest.TestCase):
             self.assertIn('struttura', review.message)
 
     def test_host_access_and_unsupported_constructs_are_rejected(self):
-        for code in ('import os', '__import__("os").system("anything")', 'while True:\n    parti()', 'if badge:\n    print(1)', 'batteria = 100', 'if badge.__class__:\n    parti()', 'if [1]:\n    parti()', 'if (lambda: True)():\n    parti()'):
+        for code in ('import os', '__import__("os").system("anything")', 'while True:\n    @parti', 'if badge:\n    print(1)', 'batteria = 100', 'if badge.__class__:\n    @parti', 'if [1]:\n    @parti', 'if (lambda: True)():\n    @parti'):
             with self.assertRaises(CodeError, msg=code):
                 parse(code, 'Python')
         for language in ('C', 'JavaScript', 'Java'):
-            for code in ('if (batteria = 30) { parti(); }', 'while (true) { parti(); }', 'if (badge) { system(); }', 'if (badge) { apri();', 'if (badge) { apri(); } garbage'):
+            for code in ('if (batteria = 30) { @parti; }', 'while (true) { @parti; }', 'if (badge) { system(); }', 'if (badge) { @apri;', 'if (badge) { @apri; } garbage'):
                 with self.assertRaises(CodeError, msg=code):
                     parse(code, language)
 
@@ -129,7 +130,7 @@ class InterpreterTests(unittest.TestCase):
         with self.assertRaises(CodeError):
             parse('#' + 'x' * MAX_CODE, 'Python')
         for language in ('C', 'JavaScript', 'Java'):
-            code = '// header\n/* multiline\n comment */\nif (badge) {\n apri();\n}\n'
+            code = '// header\n/* multiline\n comment */\nif (badge) {\n @apri;\n}\n'
             frames = self.trace(code, language, badge=True)
             self.assertEqual([f.line for f in frames if f.kind == 'condition'], [4])
             self.assertEqual([f.line for f in frames if f.kind == 'action'], [5])
@@ -296,7 +297,7 @@ class InterfaceTests(unittest.TestCase):
         app.open_mission('portello')
         app.editor.set('')
         app.editor.focus = True
-        app.event(pygame.event.Event(pygame.TEXTINPUT, text='if badge:\n    apri()\n'))
+        app.event(pygame.event.Event(pygame.TEXTINPUT, text=console_source('if badge:\n    @apri\n', app.language)))
         original = app.editor.value
         app.start_trace(False)
         app.event(pygame.event.Event(pygame.TEXTINPUT, text='# commento'))

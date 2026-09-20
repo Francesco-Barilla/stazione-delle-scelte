@@ -19,7 +19,7 @@ GIOCA
 Facile: guida cinque droni, con clic o tasti A-D. Il quinto ha dati a sorpresa.
 Gli errori danno indizi e permettono di riprovare, senza limite di tempo.
 Laboratorio del codice: costruisci la regola con condizioni e azioni a blocchi.
-Medio: premi Completa i ???. La guida distingue condizione e azione con ().
+Medio: premi Completa i ???. La guida distingue condizione e istruzione standard di stampa.
 Scrivi solo nella selezione; conserva il rientro e il ; quando è già presente.
 Difficile: premi Scrivi qui e digita la regola, una istruzione per riga.
 Cosa devo scrivere? mostra dati, comandi ed esempio nel linguaggio scelto.
@@ -57,3 +57,20 @@ Passa a Gioca/Facile e infine a Scova l'equivoco.
 Per i sorgenti: python -m pip install -r requirements.txt
 Poi: python main.py
 Istruzioni complete e riferimenti: README.md.
+
+
+PROGRESSI E REPORT PER IL DOCENTE
+Il pulsante Progressi e report è sempre in basso. Mostra missioni Gioca
+completate, risposte corrette, errori e percentuale di errore:
+errori / risposte effettivamente controllate x 100. Senza risposte compare —.
+Impara, Gioca e Quiz sono distinti. Ogni verifica del programma conta come
+un tentativo, non come un tentativo per ciascun caso automatico.
+Ripetere lo stesso controllo senza cambiare risposta non aggiunge tentativi;
+una risposta modificata viene contata. Rivedere una traccia non conta.
+Sono visibili anche aiuti e soluzioni consultati. I vecchi completamenti
+restano; non vengono inventati tentativi o errori antecedenti all'aggiornamento.
+Inserisci facoltativamente un nome/codice: identifica l'intero storico di
+questa copia. Esporta report CSV crea un file nella cartella report accanto
+ai progressi, con tutti i linguaggi/livelli e dettaglio delle attività.
+Il registro è locale e modificabile, non sincronizzato né una prova
+antimanomissione. Per il controllo in classe, raccogli i CSV degli studenti.

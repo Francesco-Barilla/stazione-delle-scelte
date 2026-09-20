@@ -20,3 +20,6 @@ Thumbs.db
 /dist/*
 !/dist/StazioneScelte-Windows.zip
 !/dist/StazioneScelte-Sorgenti.zip
+
+# Local student exports are not part of the public source release.
+report/

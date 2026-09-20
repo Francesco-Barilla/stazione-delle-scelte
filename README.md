@@ -230,3 +230,44 @@ Per testo e valori logici:
 [Java: String.isEmpty](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html#isEmpty()).
 Spiegazioni e grafica del laboratorio sono originali. Le licenze dei componenti
 distribuiti sono in `LICENZE.txt`.
+
+
+PROGRESSI E REPORT PER IL DOCENTE
+Il pulsante Progressi e report è sempre in basso. Mostra missioni Gioca
+completate, risposte corrette, errori e percentuale di errore:
+errori / risposte effettivamente controllate x 100. Senza risposte compare —.
+Impara, Gioca e Quiz sono distinti. Ogni verifica del programma conta come
+un tentativo, non come un tentativo per ciascun caso automatico.
+Ripetere lo stesso controllo senza cambiare risposta non aggiunge tentativi;
+una risposta modificata viene contata. Rivedere una traccia non conta.
+Sono visibili anche aiuti e soluzioni consultati. I vecchi completamenti
+restano; non vengono inventati tentativi o errori antecedenti all'aggiornamento.
+Inserisci facoltativamente un nome/codice: identifica l'intero storico di
+questa copia. Esporta report CSV crea un file nella cartella report accanto
+ai progressi, con tutti i linguaggi/livelli e dettaglio delle attività.
+Il registro è locale e modificabile, non sincronizzato né una prova
+antimanomissione. Per il controllo in classe, raccogli i CSV degli studenti.
+
+
+## Funzioni standard e programmi completi
+
+Le istruzioni mostrano `print("apri")`, `console.log("apri")`,
+`printf("%s\n", "apri")` oppure `System.out.println("apri")`.
+Le vecchie chiamate personalizzate non sono più accettate. Il messaggio
+stampato viene animato dal gioco: la funzione standard scrive testo nel
+terminale, non comanda da sola un portello.
+
+In C `%s` richiede il testo dopo la virgola e `\n` va a capo.
+Nel frammento della sfida i dati sono già forniti. Da **Mostra una soluzione →
+Programma completo con lettura dei dati** si vedono anche le intestazioni,
+le dichiarazioni e le letture reali: `int(input())`, `Number(prompt())`,
+`scanf("%d", &nome)` e `Integer.parseInt(input.nextLine())` con Scanner.
+Inserire numeri interi validi nell'ordine indicato; per i booleani usare 0 o 1.
+In C si legge prima un int e lo si confronta con zero; non si passa un bool*
+a scanf con `%d`. JavaScript usa l'ambiente browser con prompt.
+I campi testo sono già rappresentati dai booleani di presenza: il Banco
+logico mostra separatamente come verificare una stringa vuota.
+
+Il simulatore interpreta un sottoinsieme dichiarato; non esegue codice
+arbitrario dell'alunno sul computer. I test dei soli esempi scritti dagli
+autori verificano anche input/output con GCC, Java, Python e Node.

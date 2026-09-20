@@ -1,5 +1,6 @@
 """Original explanations and prediction challenges about misconceptions."""
 from dataclasses import dataclass
+from native_io import output_statement, output_explanation
 from engine import COMMANDS, FIELDS, LANGUAGES, generate, parse
 from logic import NOTES
 from missions import Case
@@ -111,7 +112,7 @@ DALLE SCELTE AL CODICE
 Laboratorio del codice apre un esercizio modificabile. Nel livello Facile scegli con il mouse condizioni e azioni. Prossimo blocco vuoto apre la scelta ancora mancante. Premi Controlla i blocchi quando hai completato le scelte. Il rientro rende visibile l’annidamento.
 
 MEDIO · COMPLETA
-Premi Completa i ??? per selezionare la prima lacuna. Se manca la condizione, scrivi solo il controllo vero/falso, senza ripetere if. Se manca l’azione, scrivi un comando con (), per esempio apri(). Conserva il rientro e il ; già presente. Premi di nuovo il pulsante per raggiungere l’altra lacuna. Cosa devo scrivere? mostra consegna ed esempi nel linguaggio selezionato.
+Premi Completa i ??? per selezionare la prima lacuna. Se manca la condizione, scrivi solo il controllo vero/falso, senza ripetere if. Se manca l’azione, scrivi l’istruzione standard che stampa il messaggio "apri"; l’esempio del linguaggio è sotto l’editor. Conserva il rientro e il ; già presente. Premi di nuovo il pulsante per raggiungere l’altra lacuna. Cosa devo scrivere? mostra consegna ed esempi nel linguaggio selezionato.
 
 DIFFICILE · PROGRAMMA
 Premi Scrivi qui e usa la tastiera: una istruzione per riga. I sensori sono già preparati dal gioco; usa i loro nomi nelle condizioni. Scrivi selezioni e azioni. Invio va a capo, Tab inserisce quattro spazi. La guida Cosa devo scrivere? mostra la struttura completa, anche per gli if annidati. Non servono import, classi, main o letture dei dati.
@@ -134,7 +135,7 @@ def commands_text(mission, language):
             return f'• {name}: testo del caso. Nel codice usa {name.replace("testo_", "campo_")}: {boolean}. Vuoto = falso, almeno un carattere = vero.'
         return f'• {name}: ' + (boolean if FIELDS[name] is bool else 'intero: solo 0 o 1' if name.startswith('segnale_') else 'intero')
     fields = '\n'.join(field_description(name) for name in mission.fields)
-    actions = '\n'.join(f'• {name}()' + ('' if language == 'Python' else ';') + ' — ' + label for name, label in COMMANDS.items())
+    actions = '\n'.join('• ' + output_statement(name, language) + ' — ' + label for name, label in COMMANDS.items())
     domains = '\n'.join(f'• {name}: ' + (f'da {values.start} a {values.stop - 1}' if isinstance(values, range) else ', '.join(repr(value) for value in values)) for name, values in mission.domain.items())
     return f'''DATI DI QUESTA MISSIONE
 {fields}
@@ -143,11 +144,13 @@ DOMINIO DELLA VERIFICA
 {domains}
 Si verificano tutte le combinazioni di questi valori. Non è una prova su numeri o tipi esterni al dominio.
 
-AZIONI DELLA STAZIONE
+MESSAGGI DA STAMPARE
 {actions}
 
+{output_explanation(language)}
+
 AMBITO DELL’EDITOR
-Scrivi un frammento: if, alternative, annidamenti e azioni senza argomenti. Condizioni con dati, interi, confronti, AND, OR, NOT, XOR (^) e parentesi. I testi sono trasformati nei sensori booleani campo_a e campo_b prima della selezione: il banco logico mostra questa preparazione nel linguaggio scelto. Nell’editor non si scrivono assegnazioni, cicli, funzioni, stringhe o librerie. Un limite del laboratorio non implica che il costrutto sia vietato nel linguaggio completo.
+Scrivi un frammento: if, alternative, annidamenti e stampe di un messaggio tra virgolette. Condizioni con dati, interi, confronti, AND, OR, NOT, XOR (^) e parentesi. I testi sono trasformati nei sensori booleani campo_a e campo_b prima della selezione: il banco logico mostra questa preparazione nel linguaggio scelto. Nell’editor non si scrivono assegnazioni, cicli, funzioni personalizzate o import di librerie. Un limite del laboratorio non implica che il costrutto sia vietato nel linguaggio completo.
 
 I dati rappresentano una fotografia dei sensori all’inizio del caso. Le azioni non modificano questi dati durante la traccia. Cambiare caso simula una nuova lettura. Limiti: 12000 caratteri, 180 righe, 10 livelli e 300 istruzioni.'''
 
@@ -169,64 +172,64 @@ class Quiz:
 
 
 QUIZZES = (
-    Quiz('senza_else', 'Se non succede nulla…', 'ricarica', 'if batteria < 30:\n    ricarica()\n', Case('Batteria sufficiente', {'batteria': 80}),
+    Quiz('senza_else', 'Se non succede nulla…', 'ricarica', 'if batteria < 30:\n    print("ricarica")\n', Case('Batteria sufficiente', {'batteria': 80}),
          'Che cosa esegue questo programma?', ('Ricarica comunque una volta', 'Nessuna azione', 'Va in errore perché manca else'), 1,
          '80 < 30 è falso. Il corpo viene saltato e il programma finisce. Else è facoltativo: nessuna azione può essere il risultato corretto.'),
-    Quiz('non_ciclo', 'Quante ricariche?', 'ricarica', 'if batteria < 30:\n    ricarica()\n', Case('Batteria scarica', {'batteria': 10}),
-         'Quante volte viene chiamata ricarica() in questa esecuzione?', ('Finché la batteria raggiunge 30', 'Zero volte', 'Una volta'), 2,
+    Quiz('non_ciclo', 'Quante ricariche?', 'ricarica', 'if batteria < 30:\n    print("ricarica")\n', Case('Batteria scarica', {'batteria': 10}),
+         'Quante volte viene stampato il messaggio "ricarica" in questa esecuzione?', ('Finché la batteria raggiunge 30', 'Zero volte', 'Una volta'), 2,
          'If non ripete. Il programma raggiunge una volta la selezione ed esegue una volta l’azione. Qui i dati dei sensori sono la fotografia iniziale del caso.'),
-    Quiz('confine', 'Il 30 dimenticato', 'soglia', 'if batteria > 30:\n    parti()\nelse:\n    ricarica()\n', Case('Confine esatto', {'batteria': 30}),
+    Quiz('confine', 'Il 30 dimenticato', 'soglia', 'if batteria > 30:\n    print("parti")\nelse:\n    print("ricarica")\n', Case('Confine esatto', {'batteria': 30}),
          'Con questo codice, che cosa succede esattamente a 30?', ('Ricarica', 'Parte', 'Esegue entrambi i rami'), 0,
          '30 > 30 è falso: viene eseguito else. Se la consegna dice “almeno 30”, serve >=. I casi sotto e sopra non bastano a scoprire questo errore.'),
-    Quiz('due_if', 'Due controlli, due azioni', 'indipendenti', 'if batteria < 20:\n    ricarica()\nif batteria < 60:\n    controlla()\n', Case('Entrambe vere', {'batteria': 10}),
+    Quiz('due_if', 'Due controlli, due azioni', 'indipendenti', 'if batteria < 20:\n    print("ricarica")\nif batteria < 60:\n    print("controlla")\n', Case('Entrambe vere', {'batteria': 10}),
          'Quale sequenza viene eseguita?', ('Soltanto Ricarica', 'Ricarica → Ispeziona', 'Soltanto Ispeziona'), 1,
          'I due if sono indipendenti. Con 10 entrambe le condizioni sono vere e le azioni vengono eseguite nell’ordine scritto.'),
-    Quiz('saltata', 'Falsa o non valutata?', 'catena', 'if batteria < 20:\n    ricarica()\nelif batteria < 60:\n    controlla()\nelse:\n    parti()\n', Case('Prima fascia', {'batteria': 10}),
+    Quiz('saltata', 'Falsa o non valutata?', 'catena', 'if batteria < 20:\n    print("ricarica")\nelif batteria < 60:\n    print("controlla")\nelse:\n    print("parti")\n', Case('Prima fascia', {'batteria': 10}),
          'Che stato ha il controllo batteria < 60 nella traccia?', ('Falso', 'Vero e quindi eseguito', 'Non valutato'), 2,
          'La prima condizione è già vera. La catena esclude le alternative; il secondo controllo non viene eseguito, anche se 10 < 60 sarebbe vero.'),
-    Quiz('ordine', 'La priorità non si indovina', 'priorita', 'if badge:\n    corsia_rapida()\nelif urgente:\n    soccorso()\nelse:\n    corsia_normale()\n', Case('Urgenza con badge', {'badge': True, 'urgente': True}),
+    Quiz('ordine', 'La priorità non si indovina', 'priorita', 'if badge:\n    print("corsia_rapida")\nelif urgente:\n    print("soccorso")\nelse:\n    print("corsia_normale")\n', Case('Urgenza con badge', {'badge': True, 'urgente': True}),
          'Questo programma dà davvero priorità all’urgenza?', ('No: sceglie Corsia rapida', 'Sì: urgente è più importante', 'Esegue Corsia rapida e Soccorso'), 0,
          'Viene scelto il primo ramo vero, badge. Per dare priorità all’urgenza bisogna controllarla per prima. I nomi delle variabili non attribuiscono priorità.'),
-    Quiz('and_or', 'Un permesso non basta', 'and', 'if badge or autorizzato:\n    apri()\nelse:\n    nega()\n', Case('Un solo permesso', {'badge': True, 'autorizzato': False}),
+    Quiz('and_or', 'Un permesso non basta', 'and', 'if badge or autorizzato:\n    print("apri")\nelse:\n    print("nega")\n', Case('Un solo permesso', {'badge': True, 'autorizzato': False}),
          'Il codice apre il portello anche senza autorizzazione?', ('No, servono sempre entrambi', 'Sì, perché usa OR', 'Dipende dall’ordine delle parole'), 1,
          'OR richiede almeno una condizione vera, e badge è vero. La regola che richiede entrambi i permessi deve usare AND.'),
-    Quiz('or_inclusivo', 'Due pericoli si annullano?', 'or', 'if temperatura >= 70 or fumo:\n    allarme()\nelse:\n    parti()\n', Case('Due segnali', {'temperatura': 90, 'fumo': True}),
+    Quiz('or_inclusivo', 'Due pericoli si annullano?', 'or', 'if temperatura >= 70 or fumo:\n    print("allarme")\nelse:\n    print("parti")\n', Case('Due segnali', {'temperatura': 90, 'fumo': True}),
          'Caldo e fumo sono entrambi presenti. Che cosa succede?', ('Parte: OR esclude il caso vero/vero', 'Attiva l’allarme due volte', 'Attiva l’allarme una volta'), 2,
          'OR è inclusivo: almeno una comprende anche entrambe. Il corpo dell’if viene eseguito una volta. Il primo confronto è vero e, per cortocircuito, fumo non viene letto.'),
-    Quiz('intervallo_or', 'Una fascia troppo larga', 'intervallo', 'if peso >= 10 or peso <= 20:\n    carica()\nelse:\n    controlla()\n', Case('Fuori fascia', {'peso': 35}),
+    Quiz('intervallo_or', 'Una fascia troppo larga', 'intervallo', 'if peso >= 10 or peso <= 20:\n    print("carica")\nelse:\n    print("controlla")\n', Case('Fuori fascia', {'peso': 35}),
          'Questo programma imbarca un contenitore da 35 kg?', ('Sì: il primo confronto è vero', 'No: 35 non è tra 10 e 20', 'No: OR richiede entrambi i limiti'), 0,
          '35 >= 10 è vero. OR basta già per scegliere carica. Per richiedere contemporaneamente i due limiti si usa AND.'),
-    Quiz('interno', 'Un controllo mai raggiunto', 'annidato', 'if badge:\n    if livello >= 2:\n        apri()\n    else:\n        accompagna()\nelse:\n    nega()\n', Case('Esperto senza badge', {'badge': False, 'livello': 3}),
+    Quiz('interno', 'Un controllo mai raggiunto', 'annidato', 'if badge:\n    if livello >= 2:\n        print("apri")\n    else:\n        print("accompagna")\nelse:\n    print("nega")\n', Case('Esperto senza badge', {'badge': False, 'livello': 3}),
          'Che cosa succede al controllo livello >= 2?', ('Viene valutato e apre', 'Non viene valutato; viene negato l’accesso', 'È falso perché badge è falso'), 1,
          'Il livello non dipende dal valore del badge: vale ancora 3. Tuttavia il programma non raggiunge quel controllo, perché il ramo esterno vero viene saltato.'),
-    Quiz('else_interno', 'A quale if appartiene?', 'annidato', 'if badge:\n    if livello >= 2:\n        apri()\n    else:\n        accompagna()\n', Case('Nessun badge', {'badge': False, 'livello': 0}),
-         'Con badge falso, viene eseguito accompagna()?', ('Sì: qualunque if falso attiva else', 'Sì: else vale per tutti gli if', 'No: quell’else appartiene all’if interno'), 2,
+    Quiz('else_interno', 'A quale if appartiene?', 'annidato', 'if badge:\n    if livello >= 2:\n        print("apri")\n    else:\n        print("accompagna")\n', Case('Nessun badge', {'badge': False, 'livello': 0}),
+         'Con badge falso, viene stampato "accompagna"?', ('Sì: qualunque if falso attiva else', 'Sì: else vale per tutti gli if', 'No: quell’else appartiene all’if interno'), 2,
          'L’intero ramo badge viene saltato, compreso l’else dell’if interno. Non c’è un else esterno. In Python segui il rientro; negli altri linguaggi segui le graffe.'),
-    Quiz('dopo', 'Il programma continua', 'turno', 'if badge:\n    apri()\nelse:\n    nega()\nregistra()\n', Case('Accesso negato', {'badge': False}),
+    Quiz('dopo', 'Il programma continua', 'turno', 'if badge:\n    print("apri")\nelse:\n    print("nega")\nprint("registra")\n', Case('Accesso negato', {'badge': False}),
          'Qual è la sequenza completa?', ('Nega accesso → Registra passaggio', 'Soltanto Nega accesso', 'Registra soltanto se il badge è valido'), 0,
          'Registra è dopo tutta la selezione. Viene eseguita anche dopo il ramo else. Se la rientrassi dentro un ramo, cambieresti il comportamento.'),
-    Quiz('xor_entrambi', 'Due sì fanno un no?', 'xor', 'if badge ^ autorizzato:\n    apri()\nelse:\n    attendi()\n', Case('Due comandi accesi', {'badge': True, 'autorizzato': True}),
+    Quiz('xor_entrambi', 'Due sì fanno un no?', 'xor', 'if badge ^ autorizzato:\n    print("apri")\nelse:\n    print("attendi")\n', Case('Due comandi accesi', {'badge': True, 'autorizzato': True}),
          'Con XOR, che ordine riceve il drone?', ('Apri: basta un vero', 'Attendi: sono veri entrambi', 'Apri due volte'), 1,
          'XOR vuole esattamente un vero. Vero/vero dà falso: il drone attende. Con OR il risultato sarebbe vero. Prova il cambio nel banco.'),
-    Quiz('xor_nessuno', 'Sono uguali, ma falsi', 'xor', 'if badge ^ autorizzato:\n    apri()\nelse:\n    attendi()\n', Case('Entrambi spenti', {'badge': False, 'autorizzato': False}),
+    Quiz('xor_nessuno', 'Sono uguali, ma falsi', 'xor', 'if badge ^ autorizzato:\n    print("apri")\nelse:\n    print("attendi")\n', Case('Entrambi spenti', {'badge': False, 'autorizzato': False}),
          'Falso XOR falso produce…', ('Vero, perché i valori coincidono', 'Due ordini opposti', 'Falso: manca l’unico vero richiesto'), 2,
          'XOR verifica la differenza dei valori booleani. Anche falso/falso è una coppia uguale e dà falso. Attendi è l’unica azione.'),
-    Quiz('not_falso', 'Il no che diventa sì', 'not', 'if not autorizzato:\n    nega()\nelse:\n    apri()\n', Case('Permesso assente', {'autorizzato': False}),
+    Quiz('not_falso', 'Il no che diventa sì', 'not', 'if not autorizzato:\n    print("nega")\nelse:\n    print("apri")\n', Case('Permesso assente', {'autorizzato': False}),
          'Quale ramo viene scelto?', ('Il ramo if: nega', 'Il ramo else: apri', 'Nessuno: falso blocca tutto'), 0,
          'Prima leggi False, poi applica NOT: ottieni True. È la condizione completa a decidere il ramo. Si esegue nega.'),
-    Quiz('not_bit', 'Inverti, non cambiare segno', 'bit_not', 'if not (segnale_a == 1):\n    ricarica()\nelse:\n    parti()\n', Case('Segnale a zero', {'segnale_a': 0}),
+    Quiz('not_bit', 'Inverti, non cambiare segno', 'bit_not', 'if not (segnale_a == 1):\n    print("ricarica")\nelse:\n    print("parti")\n', Case('Segnale a zero', {'segnale_a': 0}),
          'NOT (0 == 1) è vero oppure falso?', ('Falso: zero resta zero', 'Vero: il drone ricarica', 'Vale meno uno'), 1,
          '0 == 1 è falso; NOT lo trasforma in vero. Il drone ricarica. Non è una negazione aritmetica e non è l’operatore ~.'),
-    Quiz('testo_zero', 'Lo zero scritto nel campo', 'campo', 'if campo_a:\n    registra()\nelse:\n    attendi()\n', Case('Un carattere presente', {'testo_a': '0'}),
+    Quiz('testo_zero', 'Lo zero scritto nel campo', 'campo', 'if campo_a:\n    print("registra")\nelse:\n    print("attendi")\n', Case('Un carattere presente', {'testo_a': '0'}),
          'Il sensore di presenza campo_a è…', ('Falso: il testo è zero', 'Falso: il testo non è un nome', 'Vero: contiene un carattere'), 2,
          'Il testo "0" non è il numero 0. Il campo contiene un carattere: campo_a è vero e registra viene eseguito. Qui si controlla la presenza, non la validità.'),
-    Quiz('testo_spazio', 'Sembra vuoto, ma contiene…', 'campo', 'if campo_a:\n    registra()\nelse:\n    attendi()\n', Case('Un solo spazio', {'testo_a': ' '}),
+    Quiz('testo_spazio', 'Sembra vuoto, ma contiene…', 'campo', 'if campo_a:\n    print("registra")\nelse:\n    print("attendi")\n', Case('Un solo spazio', {'testo_a': ' '}),
          'Uno spazio conta come campo pieno?', ('Sì: è presente un carattere', 'No: non si vede', 'Solo in Python'), 0,
          'La regola conta anche gli spazi: campo_a è vero e registra viene eseguito. Se volessimo ignorarli dovremmo introdurre un’altra regola esplicita.'),
-    Quiz('testi_diversi', 'Due nomi diversi, due campi pieni', 'campi_xor', 'if campo_a ^ campo_b:\n    parti()\nelse:\n    attendi()\n', Case('Luna e Marte', {'testo_a': 'LUNA', 'testo_b': 'MARTE'}),
+    Quiz('testi_diversi', 'Due nomi diversi, due campi pieni', 'campi_xor', 'if campo_a ^ campo_b:\n    print("parti")\nelse:\n    print("attendi")\n', Case('Luna e Marte', {'testo_a': 'LUNA', 'testo_b': 'MARTE'}),
          'XOR fa partire la navetta?', ('Sì: i testi sono diversi', 'No: entrambi i sensori sono veri', 'Sì: c’è almeno un campo pieno'), 1,
          'Si confrontano i booleani di presenza, non le parole. Entrambi i campi sono pieni: vero XOR vero è falso. La navetta attende.'),
-    Quiz('numero_zero', 'Questo zero è un numero', 'bit_and', 'if segnale_a == 1 and segnale_b == 1:\n    parti()\nelse:\n    attendi()\n', Case('Un motore spento', {'segnale_a': 0, 'segnale_b': 1}),
+    Quiz('numero_zero', 'Questo zero è un numero', 'bit_and', 'if segnale_a == 1 and segnale_b == 1:\n    print("parti")\nelse:\n    print("attendi")\n', Case('Un motore spento', {'segnale_a': 0, 'segnale_b': 1}),
          'Il valore 0 è scritto sul sensore: basta per partire?', ('Sì: il sensore contiene qualcosa', 'Sì: OR accende entrambi', 'No: il numero 0 significa falso'), 2,
          'Qui gli ingressi sono numeri binari, non campi di testo. A vale 0: il confronto con 1 è falso e AND non consente la partenza.'),
 )

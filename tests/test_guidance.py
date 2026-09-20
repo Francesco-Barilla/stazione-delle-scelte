@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import pygame
 from main import App
+from native_io import output_statement
 from engine import LANGUAGES, parse, run
 from guidance import first_gap, mission_brief, syntax_example
 from missions import MISSIONS
@@ -38,7 +39,7 @@ class GuidanceTests(unittest.TestCase):
         for language in LANGUAGES:
             app.set_language(language)
             app.open_mission('portello')
-            for replacement in ('badge', 'apri()'):
+            for replacement in ('badge', output_statement('apri', language).rstrip(';')):
                 before = app.editor.value
                 self.click('focus_code')
                 a, b = sorted((app.editor.caret, app.editor.anchor))
@@ -54,7 +55,7 @@ class GuidanceTests(unittest.TestCase):
         app.open_mission('ricarica')
         app.editor.set('# appunti')
         self.click('focus_code')
-        app.event(pygame.event.Event(pygame.TEXTINPUT, text='if batteria < 30:\n    ricarica()'))
+        app.event(pygame.event.Event(pygame.TEXTINPUT, text='if batteria < 30:\n    print("ricarica")'))
         self.click('verify')
         self.assertTrue(app.editor.value.startswith('# appunti\n'))
         self.assertTrue(app.review.success)
@@ -137,7 +138,7 @@ class GuidanceTests(unittest.TestCase):
             app.open_mission('portello')
             note = ('# ' if language == 'Python' else '// ') + 'dubbio ???\n'
             app.editor.set(note + app.mission.starter(language, 'Medio'))
-            for value in ('badge', 'apri()'):
+            for value in ('badge', output_statement('apri', language).rstrip(';')):
                 self.click('focus_code')
                 self.assertGreaterEqual(app.editor.anchor, len(note))
                 app.event(pygame.event.Event(pygame.TEXTINPUT, text=value))
@@ -180,7 +181,7 @@ class GuidanceTests(unittest.TestCase):
         app = self.app
         app.set_difficulty('Difficile')
         app.open_mission('portello')
-        app.editor.set('if ' + ' or '.join(['badge'] * 20) + ':\n    apri()\nelse:\n    nega()')
+        app.editor.set('if ' + ' or '.join(['badge'] * 20) + ':\n    print("apri")\nelse:\n    print("nega")')
         self.click('trace_view')
         app.draw()
         try:

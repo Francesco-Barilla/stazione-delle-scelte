@@ -6,6 +6,7 @@ is read with ast; the three brace languages have their own precedence parser.
 import ast
 from dataclasses import dataclass, field
 import re
+from native_io import output_statement, output_message, STRING_TOKEN
 
 LANGUAGES = ('Python', 'JavaScript', 'C', 'Java')
 COMMANDS = {
@@ -81,7 +82,7 @@ def py_expr(item, line):
     raise CodeError('Nelle condizioni usa i dati della missione, interi, confronti e operatori logici. Funzioni, stringhe e altri costrutti non sono previsti qui.', line)
 
 
-TOKEN = re.compile(r'\s+|//[^\n]*|/\*[\s\S]*?\*/|===|!==|==|!=|<=|>=|&&|\|\||[A-Za-z_][A-Za-z_0-9]*|\d+|[{}();<>!+\-=^]')
+TOKEN = re.compile(STRING_TOKEN + r'|\s+|//[^\n]*|/\*[\s\S]*?\*/|===|!==|==|!=|<=|>=|&&|\|\||[A-Za-z_][A-Za-z_0-9]*|\d+|[{}();,<>!+\-=^.]')
 
 
 def tokenize(code):
@@ -265,7 +266,7 @@ def generate(nodes, language, level=0):
         indent = '    ' * depth
         for node in items:
             if node.kind == 'action':
-                result.append(indent + node.value + '()' + ('' if language == 'Python' else ';'))
+                result.append(indent + output_statement(node.value, language))
             elif node.kind == 'pass':
                 result.append(indent + ('pass' if language == 'Python' else ';'))
             else:
@@ -298,8 +299,12 @@ def python_nodes(items, source, depth=0):
                         item.orelse[0].lineno - 1 if item.orelse else item.lineno,
                         source[item.lineno - 1].lstrip().startswith('elif '))
             result.append(node)
-        elif isinstance(item, ast.Expr) and isinstance(item.value, ast.Call) and isinstance(item.value.func, ast.Name) and not item.value.args and not item.value.keywords:
-            result.append(Node('action', item.value.func.id, line=item.lineno))
+        elif isinstance(item, ast.Expr) and isinstance(item.value, ast.Call):
+            try:
+                message = output_message(ast.unparse(item.value), 'Python', 'ricarica')
+            except ValueError as error:
+                raise CodeError(str(error), item.lineno) from None
+            result.append(Node('action', message, line=item.lineno))
         elif isinstance(item, ast.Pass):
             result.append(Node('pass', line=item.lineno))
         else:
@@ -308,8 +313,9 @@ def python_nodes(items, source, depth=0):
 
 
 class ProgramParser:
-    def __init__(self, code):
+    def __init__(self, code, language):
         self.tokens, self.pos = tokenize(code), 0
+        self.language = language
 
     def peek(self):
         return self.tokens[self.pos][0] if self.pos < len(self.tokens) else ''
@@ -355,12 +361,16 @@ class ProgramParser:
                 if chain:
                     node.other[0].chain = True
             return [node]
-        if word in COMMANDS:
-            self.take('(')
-            self.take(')')
-            self.take(';')
-            return [Node('action', word, line=line)]
-        raise CodeError('Scrivi if, else if, else e i comandi della stazione. Le azioni vogliono () e ;. I dati non possono essere modificati qui.', line)
+        parts = [word]
+        while self.peek() and self.peek() != ';':
+            parts.append(self.take())
+        self.take(';')
+        try:
+            message = output_message(' '.join(parts), self.language, 'ricarica')
+        except ValueError as error:
+            raise CodeError(str(error), line) from None
+        return [Node('action', message, line=line)]
+
 
 
 def placeholder_index(code, language):
@@ -399,7 +409,7 @@ def parse(code, language):
         if language == 'Python':
             nodes = python_nodes(ast.parse(code).body, code.splitlines())
         else:
-            parser, nodes = ProgramParser(code), []
+            parser, nodes = ProgramParser(code, language), []
             while parser.peek():
                 nodes.extend(parser.statement())
         all_nodes = list(walk(nodes))
@@ -445,7 +455,7 @@ def run(nodes, data, language):
         for node in items:
             if node.kind == 'action':
                 actions.append(node.value)
-                frame(node.line, 'action', COMMANDS[node.value], 'Esegue questa azione una volta, poi prosegue.', depth)
+                frame(node.line, 'action', COMMANDS[node.value], 'Stampa il messaggio nel terminale. Il gioco ne rappresenta il significato, poi il programma prosegue.', depth)
             elif node.kind == 'pass':
                 frame(node.line, 'pass', 'Nessuna azione', 'Questa istruzione è vuota; il programma prosegue.', depth)
             else:

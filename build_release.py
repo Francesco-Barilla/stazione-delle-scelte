@@ -13,7 +13,7 @@ def archives():
     output = ROOT / 'dist'
     output.mkdir(exist_ok=True)
     docs = ('README.md', 'README.txt', 'LICENZE.txt', 'Avvia_Stazione.cmd')
-    previews = [ROOT / 'screenshots' / name for name in ('18-completa-condizione.png', '25-corretto-anche-da-fermo.png')]
+    previews = [ROOT / 'screenshots' / name for name in ('30-progressi-e-report.png', '18-completa-condizione.png', '25-corretto-anche-da-fermo.png')]
     packages = {
         'StazioneScelte-Windows.zip': [ROOT / 'StazioneScelte.exe'] + [ROOT / name for name in docs] + previews,
         'StazioneScelte-Sorgenti.zip': list(ROOT.glob('*.py')) + [ROOT / name for name in docs + ('requirements.txt', 'StazioneScelte.spec', 'PIANO.md', '.gitignore', '.gitattributes')] + list((ROOT / 'assets').glob('*')) + list((ROOT / 'tests').glob('*.py')) + list((ROOT / 'docs').rglob('*.md')) + list((ROOT / 'screenshots').glob('*.png')),
